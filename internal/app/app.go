@@ -8,15 +8,12 @@ import (
 	"syscall"
 
 	"VEEEKTOR_api/internal/service"
-	"VEEEKTOR_api/pkg/database/pgsql"
 )
 
 var apiPrefix = "/api"
 
 func Start() {
 	log.Printf("VEEEKTOR_api is starting...")
-
-	defer pgsql.DB.Close()
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	mux := getMultiplexer()
