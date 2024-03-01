@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  postgres:
+    restart: always
+    env_file:
+      - .env
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    volumes:
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+        test: ["CMD-SHELL", "pg_isready", "-U", "veeektor", "-d", "veeektor" ]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+
+  api:
+    restart: on-failure
+    build: ./
+    command: ./api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
