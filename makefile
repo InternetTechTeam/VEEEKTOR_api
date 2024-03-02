@@ -1,3 +1,5 @@
 all:
-	go build -o veeektor_api cmd/main.go 
-	./veeektor_api
+	docker compose up --build
+
+clean:
+	docker system prune -a

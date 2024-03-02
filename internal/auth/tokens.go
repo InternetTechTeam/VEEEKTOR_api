@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -18,7 +19,7 @@ var (
 	AccessTokenLifeTime  = time.Minute * 60    // One hour
 	RefreshTokenLifeTime = time.Minute * 43800 // 30 days
 	// Should be implemented via environment
-	AccessKey = []byte("qwertyuiop")
+	AccessKey = []byte(os.Getenv("JWT_KEY"))
 )
 
 type TokenResponse struct {
