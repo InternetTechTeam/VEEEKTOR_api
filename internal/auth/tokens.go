@@ -43,7 +43,7 @@ func GenerateRefreshToken() (string, error) {
 func GenerateAccessToken(user_id int, role_id int) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["exp"] = time.Now().Add(AccessTokenLifeTime)
+	claims["exp"] = time.Now().Add(AccessTokenLifeTime).Unix()
 	claims["user_id"] = user_id
 	claims["role_id"] = role_id
 	tokenString, err := token.SignedString(AccessKey)
