@@ -12,6 +12,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 
+	"VEEEKTOR_api/pkg/database/pgsql"
 	e "VEEEKTOR_api/pkg/errors"
 )
 
@@ -88,12 +89,55 @@ func GetRefreshTokenFromCookieOrBody(r *http.Request) (string, error) {
 	return rt.Token, nil
 }
 
-func IsAccessTokenExpired(accessToken string) (bool, error) {
+func GetTokenClaims(accessToken string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (i interface{}, err error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, e.ErrTokenNotValid
+		}
+		return AccessKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	return false, nil
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, e.ErrTokenNotValid
+	}
+
+	return claims, nil
+}
+
+func IsAccessTokenExpired(accessToken string) (bool, error) {
+	var claims jwt.MapClaims
+	var err error
+	if claims, err = GetTokenClaims(accessToken); err != nil {
+		return true, err
+	}
+
+	if claims["exp"].(int64) > time.Now().Unix() {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func IsRefreshTokenExpired(refreshToken string) (bool, error) {
+	stmt, err := pgsql.DB.Prepare(
+		`SELECT expires_at FROM sessions WHERE refresh_token=$1`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
 
-	return false, nil
+	var expiresAt int64
+	if err := stmt.QueryRow(&refreshToken).Scan(&expiresAt); err != nil {
+		log.Print(err)
+		return true, err
+	}
+
+	if expiresAt > time.Now().Unix() {
+		return false, nil
+	}
+
+	return true, nil
 }

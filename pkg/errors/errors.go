@@ -38,6 +38,8 @@ var (
 		"token expired")
 	ErrTokenNotProvided = errors.New(
 		"token not provided")
+	ErrTokenNotValid = errors.New(
+		"provided token not valid")
 	// Roles
 	ErrRoleNotFound = errors.New(
 		"role with this id not found")
