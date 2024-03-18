@@ -87,21 +87,14 @@ func UpdateToken(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-// Middleware for private requests
-func CheckUserAuth(r *http.Request) (bool, error) {
-	var err error
-	var refreshToken string
-	if refreshToken, err = auth.GetRefreshTokenFromCookieOrBody(r); err != nil {
+func IsUserAuthorized(r *http.Request) (bool, error) {
+	accessToken, err := auth.GetAccessTokenFromHeader(r)
+	if err != nil {
 		return false, err
 	}
 
-	var sess auth.Session
-	if sess, err = auth.GetSessionByRefreshToken(refreshToken); err != nil {
-		return false, err
-	}
-
-	var exp bool
-	if exp, err = sess.IsExpired(); err != nil {
+	exp, err := auth.IsAccessTokenExpired(accessToken)
+	if err != nil {
 		return false, err
 	}
 

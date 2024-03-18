@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -87,6 +88,23 @@ func GetRefreshTokenFromCookieOrBody(r *http.Request) (string, error) {
 		return "", e.ErrTokenNotProvided
 	}
 	return rt.Token, nil
+}
+
+func GetAccessTokenFromHeader(r *http.Request) (string, error) {
+	header := r.Header.Get("Authorization")
+	if header == "" {
+		return "", e.ErrTokenNotProvided
+	}
+
+	headerParts := strings.Split(header, " ")
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+		return "", e.ErrTokenNotValid
+	}
+
+	if len(headerParts[1]) == 0 {
+		return "", e.ErrTokenNotValid
+	}
+	return headerParts[1], nil
 }
 
 func GetTokenClaims(accessToken string) (jwt.MapClaims, error) {
