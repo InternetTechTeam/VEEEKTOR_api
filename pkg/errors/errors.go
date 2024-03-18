@@ -33,6 +33,8 @@ var (
 		"cant prepare db statement")
 	ErrRoleNotFound = errors.New(
 		"role with this id not found")
+	ErrRoleCantBeSet = errors.New(
+		"only admin can set this role")
 	ErrTokenExpired = errors.New(
 		"token expired")
 	ErrTokenNotProvided = errors.New(
