@@ -22,7 +22,7 @@ import (
 // "access_token"  : token for access to private pages, lifetime - one hour,
 // "refresh_token" : token for refreshing access token, lifetime - 30 days.
 // Access token claims:
-// "exp" : token expiration date and time,
+// "exp" : token expiration date and time in UNIX format,
 // "user_id" : ID of the user who owns the token,
 // "role_id" : User role id. For actual roles see roles API.
 // Cookie:
@@ -80,14 +80,13 @@ func UsersSignInHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-// User creation logic.
+// Basic user creation logic.
 // Expected body:
 // "email" 	  : user email (4-64 symbols),
 // "password" : user password (8-50 symbols),
 // "name" : user name (2-30 symbols),
 // "patronymic" : user patronymic (2-30 symbols),
-// "surname" : user surname (2-30 symbols),
-// "role_id" : ID of user role.
+// "surname" : user surname (2-30 symbols);
 // Response:
 // Error message or null.
 // Response codes:
@@ -104,9 +103,17 @@ func UsersSignUpHandler(w http.ResponseWriter, r *http.Request) {
 	r.Body.Read(bytes)
 
 	var dto models.User
+	dto.RoleId = 1
+
 	if err = json.Unmarshal(bytes, &dto); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUnableToUnmarshalBody)
+		return
+	}
+
+	if dto.RoleId != 1 {
+		e.ResponseWithError(
+			w, r, http.StatusBadRequest, e.ErrRoleCantBeSet)
 		return
 	}
 
