@@ -79,7 +79,7 @@ func GetRefreshTokenFromCookieOrBody(r *http.Request) (string, error) {
 
 		if err = json.Unmarshal(
 			bytes, &rt); err != nil {
-			return "", err
+			return "", e.ErrTokenNotProvided
 		}
 	}
 	if rt.Token == "" {
