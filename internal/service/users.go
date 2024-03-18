@@ -86,7 +86,8 @@ func UsersSignInHandler(w http.ResponseWriter, r *http.Request) {
 // "password" : user password (8-50 symbols),
 // "name" : user name (2-30 symbols),
 // "patronymic" : user patronymic (2-30 symbols),
-// "surname" : user surname (2-30 symbols);
+// "surname" : user surname (2-30 symbols),
+// "dep_id" : department id (For actuall id's check departments api);
 // Response:
 // Error message or null.
 // Response codes:
@@ -111,10 +112,17 @@ func UsersSignUpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Teachers and admins can not be created via this function
 	if dto.RoleId != 1 {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrRoleCantBeSet)
 		return
+	}
+
+	// Admin department not availiable for basic users
+	if dto.DepId == 1 {
+		e.ResponseWithError(
+			w, r, http.StatusBadRequest, e.ErrCantSetThisDep)
 	}
 
 	if err := dto.Validate(); err != nil {
