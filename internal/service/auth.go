@@ -87,16 +87,26 @@ func UpdateToken(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-func IsUserAuthorized(r *http.Request) (bool, error) {
+func CheckUserAuthorized(w http.ResponseWriter, r *http.Request) bool {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
-		return false, err
+		e.ResponseWithError(
+			w, r, http.StatusUnauthorized, err)
+		return false
 	}
 
 	exp, err := auth.IsAccessTokenExpired(accessToken)
 	if err != nil {
-		return false, err
+		e.ResponseWithError(
+			w, r, http.StatusUnauthorized, err)
+		return false
 	}
 
-	return !exp, nil
+	if exp {
+		e.ResponseWithError(
+			w, r, http.StatusUnauthorized, e.ErrTokenExpired)
+		return false
+	}
+
+	return true
 }

@@ -10,6 +10,8 @@ var (
 	// HTTP
 	ErrOnlyPostAllowed = errors.New(
 		"only POST allowed")
+	ErrOnlyGetAllowed = errors.New(
+		"only GET allowed")
 	ErrUnableToUnmarshalBody = errors.New(
 		"unable to unmarshal body")
 	ErrMethodNotAllowed = errors.New(
@@ -50,6 +52,9 @@ var (
 		"department with this id not found")
 	ErrCantSetThisDep = errors.New(
 		"this department can be viewed only by admins")
+	// Courses
+	ErrCoursesNotFound = errors.New(
+		"courses not found")
 )
 
 func ResponseWithError(w http.ResponseWriter, r *http.Request,

@@ -43,11 +43,12 @@ func GenerateRefreshToken() (string, error) {
 }
 
 func GenerateAccessToken(user_id int, role_id int) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
-	claims := token.Claims.(jwt.MapClaims)
-	claims["exp"] = time.Now().Add(AccessTokenLifeTime).Unix()
-	claims["user_id"] = user_id
-	claims["role_id"] = role_id
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.MapClaims{
+		"exp":     time.Now().Add(AccessTokenLifeTime).Unix(),
+		"user_id": user_id,
+		"role_id": role_id,
+	})
+
 	tokenString, err := token.SignedString(AccessKey)
 	if err != nil {
 		return "", err
@@ -108,20 +109,18 @@ func GetAccessTokenFromHeader(r *http.Request) (string, error) {
 }
 
 func GetTokenClaims(accessToken string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (i interface{}, err error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, e.ErrTokenNotValid
-		}
-		return AccessKey, nil
-	})
+	token, err := jwt.Parse(accessToken,
+		func(token *jwt.Token) (i interface{}, err error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, e.ErrTokenNotValid
+			}
+			return AccessKey, nil
+		})
 	if err != nil {
-		return nil, err
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
 		return nil, e.ErrTokenNotValid
 	}
+
+	claims := token.Claims.(jwt.MapClaims)
 
 	return claims, nil
 }
@@ -133,7 +132,8 @@ func IsAccessTokenExpired(accessToken string) (bool, error) {
 		return true, err
 	}
 
-	if claims["exp"].(int64) > time.Now().Unix() {
+	exp := claims["exp"].(float64)
+	if int64(exp) > time.Now().Unix() {
 		return false, nil
 	}
 

@@ -40,3 +40,9 @@ CREATE TABLE courses (
     markdown   TEXT,
     dep_id     INT REFERENCES departments(id) ON DELETE SET NULL
 );
+
+CREATE TABLE user_courses (
+    id        SERIAL PRIMARY KEY,
+    user_id   INT REFERENCES users(id) ON DELETE CASCADE,
+    course_id INT REFERENCES courses(id) ON DELETE CASCADE
+);
