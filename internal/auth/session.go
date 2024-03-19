@@ -42,9 +42,21 @@ func StoreSession(user_id int, role_id int) (TokenResponse, error) {
 	return resp, nil
 }
 
+func DeleteSessionByRT(refreshToken string) {
+	stmt, err := pgsql.DB.Prepare(
+		`DELETE FROM sessions WHERE refresh_token=$1`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	if _, err := stmt.Exec(&refreshToken); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func CheckSessionsCount(user_id int) {
 	getStmt, err := pgsql.DB.Prepare(
-		`SELECT COUNT(*) FROM sessions WHERE user_id = $1`)
+		`SELECT COUNT(*) FROM sessions WHERE user_id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}

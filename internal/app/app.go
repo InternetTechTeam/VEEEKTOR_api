@@ -41,6 +41,7 @@ func getMultiplexer() *http.ServeMux {
 	// Refresh auth
 	mux.HandleFunc(apiPrefix+"/auth/refresh", service.UpdateToken)
 	// Auth required
+	mux.HandleFunc(apiPrefix+"/auth/logout", service.Logout)
 	mux.HandleFunc(apiPrefix+"/courses", service.GetCouresesHandler)
 
 	return mux

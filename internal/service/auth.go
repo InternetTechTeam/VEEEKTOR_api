@@ -87,6 +87,33 @@ func UpdateToken(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
+func Logout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		e.ResponseWithError(
+			w, r, http.StatusMethodNotAllowed, e.ErrOnlyPostAllowed)
+		return
+	}
+
+	var err error
+	var refreshToken string
+	if refreshToken, err = auth.GetRefreshTokenFromCookieOrBody(r); err != nil {
+		e.ResponseWithError(
+			w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	auth.DeleteSessionByRT(refreshToken)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
 func CheckUserAuthorized(w http.ResponseWriter, r *http.Request) bool {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
