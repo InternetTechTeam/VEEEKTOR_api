@@ -7,20 +7,17 @@ import (
 )
 
 var (
+	// HTTP
 	ErrOnlyPostAllowed = errors.New(
 		"only POST allowed")
+	ErrOnlyGetAllowed = errors.New(
+		"only GET allowed")
 	ErrUnableToUnmarshalBody = errors.New(
 		"unable to unmarshal body")
-	ErrInternalServerError = errors.New(
-		"internal server error")
-	ErrUserNotFound = errors.New(
-		"user not found")
-	ErrUserExists = errors.New(
-		"user with this login already exists")
-	ErrSessionNotExist = errors.New(
-		"session for this token doesn't exist")
 	ErrMethodNotAllowed = errors.New(
 		"method not allowed")
+	ErrInternalServerError = errors.New(
+		"internal server error")
 	ErrUrlValueNotValid = errors.New(
 		"url value is not valid")
 	ErrFieldViolatesFK = errors.New(
@@ -31,14 +28,33 @@ var (
 		"required fields are missing")
 	ErrCantPrepareDbStmt = errors.New(
 		"cant prepare db statement")
-	ErrRoleNotFound = errors.New(
-		"role with this id not found")
-	ErrRoleCantBeSet = errors.New(
-		"only admin can set this role")
+	// Users
+	ErrUserNotFound = errors.New(
+		"user not found")
+	ErrUserExists = errors.New(
+		"user with this login already exists")
+	// Sessions
+	ErrSessionNotExist = errors.New(
+		"session for this token doesn't exist")
 	ErrTokenExpired = errors.New(
 		"token expired")
 	ErrTokenNotProvided = errors.New(
 		"token not provided")
+	ErrTokenNotValid = errors.New(
+		"provided token not valid")
+	// Roles
+	ErrRoleNotFound = errors.New(
+		"role with this id not found")
+	ErrRoleCantBeSet = errors.New(
+		"only admin can set this role")
+	// Departments
+	ErrDepNotFound = errors.New(
+		"department with this id not found")
+	ErrCantSetThisDep = errors.New(
+		"this department can be viewed only by admins")
+	// Courses
+	ErrCoursesNotFound = errors.New(
+		"courses not found")
 )
 
 func ResponseWithError(w http.ResponseWriter, r *http.Request,

@@ -8,10 +8,12 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 
+	"VEEEKTOR_api/pkg/database/pgsql"
 	e "VEEEKTOR_api/pkg/errors"
 )
 
@@ -41,11 +43,12 @@ func GenerateRefreshToken() (string, error) {
 }
 
 func GenerateAccessToken(user_id int, role_id int) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
-	claims := token.Claims.(jwt.MapClaims)
-	claims["exp"] = time.Now().Add(AccessTokenLifeTime).Unix()
-	claims["user_id"] = user_id
-	claims["role_id"] = role_id
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.MapClaims{
+		"exp":     time.Now().Add(AccessTokenLifeTime).Unix(),
+		"user_id": user_id,
+		"role_id": role_id,
+	})
+
 	tokenString, err := token.SignedString(AccessKey)
 	if err != nil {
 		return "", err
@@ -79,7 +82,7 @@ func GetRefreshTokenFromCookieOrBody(r *http.Request) (string, error) {
 
 		if err = json.Unmarshal(
 			bytes, &rt); err != nil {
-			return "", err
+			return "", e.ErrTokenNotProvided
 		}
 	}
 	if rt.Token == "" {
@@ -88,12 +91,72 @@ func GetRefreshTokenFromCookieOrBody(r *http.Request) (string, error) {
 	return rt.Token, nil
 }
 
-func IsAccessTokenExpired(accessToken string) (bool, error) {
+func GetAccessTokenFromHeader(r *http.Request) (string, error) {
+	header := r.Header.Get("Authorization")
+	if header == "" {
+		return "", e.ErrTokenNotProvided
+	}
 
-	return false, nil
+	headerParts := strings.Split(header, " ")
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+		return "", e.ErrTokenNotValid
+	}
+
+	if len(headerParts[1]) == 0 {
+		return "", e.ErrTokenNotValid
+	}
+	return headerParts[1], nil
+}
+
+func GetTokenClaims(accessToken string) (jwt.MapClaims, error) {
+	token, err := jwt.Parse(accessToken,
+		func(token *jwt.Token) (i interface{}, err error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, e.ErrTokenNotValid
+			}
+			return AccessKey, nil
+		})
+	if err != nil {
+		return nil, e.ErrTokenNotValid
+	}
+
+	claims := token.Claims.(jwt.MapClaims)
+
+	return claims, nil
+}
+
+func IsAccessTokenExpired(accessToken string) (bool, error) {
+	var claims jwt.MapClaims
+	var err error
+	if claims, err = GetTokenClaims(accessToken); err != nil {
+		return true, err
+	}
+
+	// Cast json number to golang int
+	exp := claims["exp"].(float64)
+	if int64(exp) > time.Now().Unix() {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func IsRefreshTokenExpired(refreshToken string) (bool, error) {
+	stmt, err := pgsql.DB.Prepare(
+		`SELECT expires_at FROM sessions WHERE refresh_token=$1`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
 
-	return false, nil
+	var expiresAt int64
+	if err := stmt.QueryRow(&refreshToken).Scan(&expiresAt); err != nil {
+		log.Print(err)
+		return true, err
+	}
+
+	if expiresAt > time.Now().Unix() {
+		return false, nil
+	}
+
+	return true, nil
 }

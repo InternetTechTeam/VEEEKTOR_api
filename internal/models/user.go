@@ -18,6 +18,7 @@ type User struct {
 	Patronymic string `json:"patronymic"`
 	Surname    string `json:"surname"`
 	RoleId     int    `json:"role_id"`
+	DepId      int    `json:"dep_id"`
 }
 
 const (
@@ -30,14 +31,17 @@ const (
 // Export oriented errors
 func (usr *User) Insert() error {
 	stmt, err := pgsql.DB.Prepare(
-		`INSERT INTO users (email, password, name, patronymic, surname, role_id) VALUES ($1, $2, $3, $4, $5, $6)`)
+		`INSERT INTO users (
+		email, password, name, 
+		patronymic, surname, role_id, dep_id) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
 	if _, err = stmt.Exec(
 		&usr.Email, &usr.Password, &usr.Name,
-		&usr.Patronymic, &usr.Surname, &usr.RoleId); err != nil {
-		log.Print(err)
+		&usr.Patronymic, &usr.Surname,
+		&usr.RoleId, &usr.DepId); err != nil {
 		return err
 	}
 	return nil
@@ -46,14 +50,20 @@ func (usr *User) Insert() error {
 // Export oriented error message
 func (usr *User) PasswordAndLoginValidate() error {
 	if len(usr.Password) < PasswordMinLen || len(usr.Password) > PasswordMaxLen {
-		return errors.New(
-			"password length must be between 8 and 50 characters")
+		msg := fmt.Sprintf(`Password must contain at least %d and no more than %d symbols lenght`, PasswordMinLen, PasswordMaxLen)
+		return errors.New(msg)
 	}
 	return nil
 }
 
 // Export oriented errors
 func (usr *User) Validate() error {
+	if usr.RoleId == 0 || usr.DepId == 0 ||
+		usr.Password == "" || usr.Email == "" ||
+		usr.Name == "" || usr.Surname == "" {
+		return e.ErrMissingFields
+	}
+
 	if len(usr.Password) < PasswordMinLen ||
 		len(usr.Password) > PasswordMaxLen {
 		msg := fmt.Sprintf(`Password must contain at least %d and no more than %d symbols lenght`, PasswordMinLen, PasswordMaxLen)
@@ -89,6 +99,16 @@ func (usr *User) Validate() error {
 		return e.ErrRoleNotFound
 	}
 
+	stmt, err = pgsql.DB.Prepare(
+		`SELECT EXISTS(SELECT 1 FROM departments WHERE id=$1)`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	if stmt.QueryRow(&usr.DepId).Scan(&exists); !exists {
+		return e.ErrDepNotFound
+	}
+
 	return nil
 }
 
@@ -113,7 +133,9 @@ func (inp *SignInInput) Validate() error {
 // Export oriented errors
 func GetUserByEmailAndPassword(inp SignInInput) (User, error) {
 	stmt, err := pgsql.DB.Prepare(
-		`SELECT id, email, password, name, patronymic, surname, role_id FROM users WHERE email=$1 and password=$2`)
+		`SELECT id, email, password, name, 
+		patronymic, surname, role_id, dep_id 
+		FROM users WHERE email=$1 and password=$2`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -121,7 +143,8 @@ func GetUserByEmailAndPassword(inp SignInInput) (User, error) {
 	var usr User
 	if err := stmt.QueryRow(&inp.Email, &inp.Password).Scan(
 		&usr.Id, &usr.Email, &usr.Password,
-		&usr.Name, &usr.Patronymic, &usr.Surname, &usr.RoleId); err != nil {
+		&usr.Name, &usr.Patronymic, &usr.Surname,
+		&usr.RoleId, &usr.DepId); err != nil {
 		if err != sql.ErrNoRows {
 			log.Fatal(err)
 		}
@@ -134,7 +157,8 @@ func GetUserByEmailAndPassword(inp SignInInput) (User, error) {
 // Export oriented error message
 func GetUserById(userId int) (User, error) {
 	stmt, err := pgsql.DB.Prepare(`
-	SELECT email, password, name, patronymic, surname
+	SELECT email, password, name, 
+	patronymic, surname, role_id, dep_id
 	FROM users WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
@@ -145,7 +169,8 @@ func GetUserById(userId int) (User, error) {
 
 	if err := stmt.QueryRow(userId).Scan(
 		&usr.Email, &usr.Password, &usr.Name,
-		&usr.Patronymic, &usr.Surname); err != nil {
+		&usr.Patronymic, &usr.Surname,
+		&usr.RoleId, &usr.DepId); err != nil {
 		if err != sql.ErrNoRows {
 			log.Fatal(err)
 		}
