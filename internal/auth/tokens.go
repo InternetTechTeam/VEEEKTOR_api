@@ -66,9 +66,8 @@ func GetRefreshTokenFromCookieOrBody(r *http.Request) (string, error) {
 	var err error
 	var rt RefreshToken
 	var cookie *http.Cookie
-	if cookie, err = r.Cookie(
-		"refresh_token"); err != nil && !errors.Is(err, http.ErrNoCookie) {
-		log.Print(err)
+	if cookie, err = r.Cookie("refresh_token"); err != nil &&
+		!errors.Is(err, http.ErrNoCookie) {
 		return "", err
 	}
 	if !errors.Is(err, http.ErrNoCookie) {
