@@ -8,11 +8,11 @@ import (
 )
 
 type Course struct {
-	Id        int    `josn:"id"`
-	Name      string `josn:"name"`
-	TeacherId int    `josn:"teacher_id"`
-	Markdown  string `josn:"markdown"`
-	DepId     int    `josn:"dep_id"`
+	Id        int    `json:"id"`
+	Name      string `json:"name"`
+	TeacherId int    `json:"teacher_id"`
+	Markdown  string `json:"markdown"`
+	DepId     int    `json:"dep_id"`
 }
 
 func GetCoursesByUserId(userId int) ([]Course, error) {

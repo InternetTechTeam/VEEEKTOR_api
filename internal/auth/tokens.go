@@ -132,6 +132,7 @@ func IsAccessTokenExpired(accessToken string) (bool, error) {
 		return true, err
 	}
 
+	// Cast json number to golang int
 	exp := claims["exp"].(float64)
 	if int64(exp) > time.Now().Unix() {
 		return false, nil
