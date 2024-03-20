@@ -6,6 +6,7 @@ import (
 	e "VEEEKTOR_api/pkg/errors"
 	"encoding/json"
 	"net/http"
+	"strconv"
 )
 
 func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
@@ -18,10 +19,11 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Get courses by user id logic.
+// Get all courses without markdown by user id logic. If url
+// contains id, response json body will contain markdown.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
-// Response: Error message or courses by user id:
+// Response: Error message or courses by user id (course id):
 // id : id of course;
 // name : name of course;
 // teacher_id : id of teacher (user);
@@ -30,33 +32,54 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 // Response codes:
 // 200, 400, 401, 404.
 func CoursesGetByUserIdHandler(w http.ResponseWriter, r *http.Request) {
-	if !CheckUserAuthorized(w, r) {
+	authorized, err := auth.CheckUserAuthorized(r)
+	if err != nil {
+		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
 		return
 	}
 
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
-	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusBadRequest, err)
+	if !authorized {
+		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
 		return
 	}
 
-	claims, err := auth.GetTokenClaims(accessToken)
-	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusBadRequest, err)
-		return
+	var jsonBytes []byte
+
+	rawQuery := r.URL.Query()
+	if rawQuery.Has("id") {
+
+		var courseId int
+		if courseId, err = strconv.Atoi(rawQuery.Get("id")); err != nil {
+			e.ResponseWithError(
+				w, r, http.StatusBadRequest, e.ErrUrlValueNotValid)
+			return
+		}
+
+		course, err := models.GetCourseById(courseId)
+		if err != nil {
+			e.ResponseWithError(
+				w, r, http.StatusNotFound, err)
+			return
+		}
+
+		jsonBytes, _ = json.Marshal(course)
+
+	} else {
+		userId, err := auth.GetUserIdFromRequest(r)
+		if err != nil {
+			e.ResponseWithError(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		courses, err := models.GetAllCoursesByUserId(userId)
+		if err != nil {
+			e.ResponseWithError(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		jsonBytes, _ = json.Marshal(courses)
 	}
 
-	// Cast json number to golang int
-	userId := int(claims["user_id"].(float64))
-
-	courses, err := models.GetCoursesByUserId(userId)
-	if err != nil {
-		e.ResponseWithError(w, r, http.StatusNotFound, err)
-	}
-
-	jsonBytes, _ := json.Marshal(courses)
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonBytes)
 }

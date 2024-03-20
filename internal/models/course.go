@@ -11,11 +11,11 @@ type Course struct {
 	Id        int    `json:"id"`
 	Name      string `json:"name"`
 	TeacherId int    `json:"teacher_id"`
-	Markdown  string `json:"markdown"`
+	Markdown  string `json:"markdown,omitempty"`
 	DepId     int    `json:"dep_id"`
 }
 
-func GetCoursesByUserId(userId int) ([]Course, error) {
+func GetAllCoursesByUserId(userId int) ([]Course, error) {
 	selCourseIdStmt, err := pgsql.DB.Prepare(
 		`SELECT course_id from user_courses WHERE user_id=$1`)
 	if err != nil {
@@ -23,7 +23,7 @@ func GetCoursesByUserId(userId int) ([]Course, error) {
 	}
 
 	selCourseStmt, err := pgsql.DB.Prepare(
-		`SELECT name, teacher_id, markdown, dep_id 
+		`SELECT name, teacher_id, dep_id 
 		 FROM courses WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
@@ -43,7 +43,7 @@ func GetCoursesByUserId(userId int) ([]Course, error) {
 
 		if err := selCourseStmt.QueryRow(&course.Id).Scan(
 			&course.Name, &course.TeacherId,
-			&course.Markdown, &course.DepId); err != nil {
+			&course.DepId); err != nil {
 			if err != sql.ErrNoRows {
 				log.Fatal(err)
 			}
@@ -53,4 +53,26 @@ func GetCoursesByUserId(userId int) ([]Course, error) {
 	}
 
 	return courses, nil
+}
+
+func GetCourseById(courseId int) (Course, error) {
+	stmt, err := pgsql.DB.Prepare(
+		`SELECT name, teacher_id, markdown, dep_id 
+		FROM courses WHERE id=$1`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	var course Course
+	course.Id = courseId
+	if err := stmt.QueryRow(&courseId).Scan(
+		&course.Name, &course.TeacherId,
+		&course.Markdown, &course.DepId); err != nil {
+		if err != sql.ErrNoRows {
+			log.Fatal(err)
+		}
+		return course, e.ErrCoursesNotFound
+	}
+
+	return course, nil
 }
