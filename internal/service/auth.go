@@ -113,27 +113,3 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteStrictMode,
 	})
 }
-
-func CheckUserAuthorized(w http.ResponseWriter, r *http.Request) bool {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
-	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusUnauthorized, err)
-		return false
-	}
-
-	exp, err := auth.IsAccessTokenExpired(accessToken)
-	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusUnauthorized, err)
-		return false
-	}
-
-	if exp {
-		e.ResponseWithError(
-			w, r, http.StatusUnauthorized, e.ErrTokenExpired)
-		return false
-	}
-
-	return true
-}

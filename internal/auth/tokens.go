@@ -159,3 +159,38 @@ func IsRefreshTokenExpired(refreshToken string) (bool, error) {
 
 	return true, nil
 }
+
+func GetUserIdFromRequest(r *http.Request) (int, error) {
+	accessToken, err := GetAccessTokenFromHeader(r)
+	if err != nil {
+		return 0, err
+	}
+
+	claims, err := GetTokenClaims(accessToken)
+	if err != nil {
+		return 0, err
+	}
+
+	// Cast json number to golang int
+	userId := int(claims["user_id"].(float64))
+
+	return userId, nil
+}
+
+func CheckUserAuthorized(r *http.Request) (bool, error) {
+	accessToken, err := GetAccessTokenFromHeader(r)
+	if err != nil {
+		return false, err
+	}
+
+	exp, err := IsAccessTokenExpired(accessToken)
+	if err != nil {
+		return false, err
+	}
+
+	if exp {
+		return false, nil
+	}
+
+	return true, nil
+}
