@@ -26,6 +26,7 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 // Response: Error message or courses by user id (course id):
 // id : id of course;
 // name : name of course;
+// term : term of course;
 // teacher_id : id of teacher (user);
 // markdown : markdown text of course;
 // dep_id : id of course department.
