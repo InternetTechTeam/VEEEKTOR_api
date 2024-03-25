@@ -13,6 +13,61 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		UsersGetHandler(w, r)
+	default:
+		e.ResponseWithError(w, r, http.StatusMethodNotAllowed,
+			e.ErrOnlyGetAllowed)
+	}
+}
+
+// Get user by access token method.
+// Expected header:
+// Authorization : Bearer <Access token>.
+// Response:
+// Error message or user data:
+// id : user id;
+// email : user email;
+// name : user name;
+// patronymic : user patronymic;
+// surname : user surname;
+// role_id : id of user role;
+// dep_id : id of user department.
+// Response codes:
+// 200, 400, 401, 404, 405.
+func UsersGetHandler(w http.ResponseWriter, r *http.Request) {
+	authorized, err := auth.CheckUserAuthorized(r)
+	if err != nil {
+		e.ResponseWithError(
+			w, r, http.StatusUnauthorized, err)
+		return
+	}
+
+	if !authorized {
+		e.ResponseWithError(
+			w, r, http.StatusUnauthorized, e.ErrTokenExpired)
+		return
+	}
+
+	userId, err := auth.GetUserIdFromRequest(r)
+	if err != nil {
+		e.ResponseWithError(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	user, err := models.GetUserById(userId)
+	if err != nil {
+		e.ResponseWithError(w, r, http.StatusNotFound, e.ErrUserNotFound)
+		return
+	}
+	user.Password = ""
+
+	jsonBytes, _ := json.Marshal(user)
+	w.Write(jsonBytes)
+}
+
 // Authorization, authentication logic.
 // Expected body:
 // "email" 	  : user email (4-64 symbols),
