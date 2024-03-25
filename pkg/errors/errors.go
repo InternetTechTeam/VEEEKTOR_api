@@ -52,6 +52,9 @@ var (
 		"department with this id not found")
 	ErrCantSetThisDep = errors.New(
 		"this department can be viewed only by admins")
+	// Educational envs
+	ErrEdEnvNotFound = errors.New(
+		"educational environment with this id not found")
 	// Courses
 	ErrCoursesNotFound = errors.New(
 		"courses not found")

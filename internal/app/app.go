@@ -38,8 +38,11 @@ func getMultiplexer() *http.ServeMux {
 	// Auth free
 	mux.HandleFunc(apiPrefix+"/users/signin", service.UsersSignInHandler)
 	mux.HandleFunc(apiPrefix+"/users/signup", service.UsersSignUpHandler)
+	mux.HandleFunc(apiPrefix+"/educational_envs/", service.GetEducatinalEnvironmentsHandler)
+
 	// Refresh auth
 	mux.HandleFunc(apiPrefix+"/auth/refresh", service.UpdateToken)
+
 	// Auth required
 	mux.HandleFunc(apiPrefix+"/auth/logout", service.Logout)
 	mux.HandleFunc(apiPrefix+"/courses", service.GetCouresesHandler)
