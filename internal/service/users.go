@@ -36,7 +36,7 @@ func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 // role_id : id of user role;
 // dep_id : id of user department.
 // Response codes:
-// 200, 400, 401, 404, 405.
+// 200, 400, 401, 404, 500.
 func UsersGetHandler(w http.ResponseWriter, r *http.Request) {
 	authorized, err := auth.CheckUserAuthorized(r)
 	if err != nil {
