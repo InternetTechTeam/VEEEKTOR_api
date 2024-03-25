@@ -8,52 +8,53 @@ import (
 	"strconv"
 )
 
-func GetEducatinalEnvironmentsHandler(w http.ResponseWriter, r *http.Request) {
+func GetDepartmentsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		EducationalEnvsGetHandler(w, r)
+		DepartmentsGetHandler(w, r)
 	default:
 		e.ResponseWithError(w, r, http.StatusMethodNotAllowed,
 			e.ErrOnlyGetAllowed)
 	}
 }
 
-// Get all educational environments logic. If url
-// contains id, response will contain educational env by id.
-// Response: Error message or educational environment(s):
+// Get all departments logic. If url
+// contains id, response will contain department by id.
+// Response: Error message or department(s):
 // id : id of educational env;
-// name : name of educational env.
+// name : name of educational env;
+// env_id : id of department educational environment.
 // Response codes:
 // 200, 400, 404, 500.
-func EducationalEnvsGetHandler(w http.ResponseWriter, r *http.Request) {
+func DepartmentsGetHandler(w http.ResponseWriter, r *http.Request) {
 	var jsonBytes []byte
 
 	rawQuery := r.URL.Query()
 	if rawQuery.Has("id") {
-		envId, err := strconv.Atoi(rawQuery.Get("id"))
+		depId, err := strconv.Atoi(rawQuery.Get("id"))
 		if err != nil {
 			e.ResponseWithError(
 				w, r, http.StatusBadRequest, e.ErrUrlValueNotValid)
 			return
 		}
 
-		env, err := models.GetEducationalEnvironmentById(envId)
+		dep, err := models.GetDepartmentById(depId)
 		if err != nil {
 			e.ResponseWithError(
 				w, r, http.StatusNotFound, err)
 			return
 		}
 
-		jsonBytes, _ = json.Marshal(env)
+		jsonBytes, _ = json.Marshal(dep)
 	} else {
-		envs, err := models.GetAllEducationalEnvs()
+		deps, err := models.GetAllDepartments()
 		if err != nil {
 			e.ResponseWithError(
 				w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		jsonBytes, _ = json.Marshal(envs)
+		jsonBytes, _ = json.Marshal(deps)
 	}
 
 	w.WriteHeader(http.StatusOK)

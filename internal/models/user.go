@@ -99,13 +99,8 @@ func (usr *User) Validate() error {
 		return e.ErrRoleNotFound
 	}
 
-	stmt, err = pgsql.DB.Prepare(
-		`SELECT EXISTS(SELECT 1 FROM departments WHERE id=$1)`)
+	_, err = GetDepartmentById(usr.DepId)
 	if err != nil {
-		log.Fatal(e.ErrCantPrepareDbStmt)
-	}
-
-	if stmt.QueryRow(&usr.DepId).Scan(&exists); !exists {
 		return e.ErrDepNotFound
 	}
 
