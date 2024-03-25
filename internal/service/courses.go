@@ -20,7 +20,7 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get all courses without markdown by user id logic. If url
-// contains id, response json body will contain markdown.
+// contains id, response body will contain markdown.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
 // Response: Error message or courses by user id (course id):
