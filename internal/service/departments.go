@@ -21,8 +21,8 @@ func GetDepartmentsHandler(w http.ResponseWriter, r *http.Request) {
 // Get all departments logic. If url
 // contains id, response will contain department by id.
 // Response: Error message or department(s):
-// id : id of educational env;
-// name : name of educational env;
+// id : id of department;
+// name : name of department;
 // env_id : id of department educational environment.
 // Response codes:
 // 200, 400, 404, 500.
