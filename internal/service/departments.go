@@ -20,6 +20,8 @@ func GetDepartmentsHandler(w http.ResponseWriter, r *http.Request) {
 
 // Get all departments logic. If url
 // contains id, response will contain department by id.
+// If url contains env_id, response will contain departments
+// by environment id.
 // Response: Error message or department(s):
 // id : id of department;
 // name : name of department;
@@ -46,6 +48,23 @@ func DepartmentsGetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		jsonBytes, _ = json.Marshal(dep)
+	} else if rawQuery.Has("env_id") {
+		envId, err := strconv.Atoi(rawQuery.Get("env_id"))
+		if err != nil {
+			e.ResponseWithError(
+				w, r, http.StatusBadRequest, e.ErrUrlValueNotValid)
+			return
+		}
+
+		deps, err := models.GetAllDepartmentsByEnvironmentId(envId)
+		if err != nil {
+			e.ResponseWithError(
+				w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		jsonBytes, _ = json.Marshal(deps)
+
 	} else {
 		deps, err := models.GetAllDepartments()
 		if err != nil {
