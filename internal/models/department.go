@@ -56,3 +56,28 @@ func GetDepartmentById(depId int) (Department, error) {
 
 	return dep, nil
 }
+
+func GetAllDepartmentsByEnvironmentId(envId int) ([]Department, error) {
+	stmt, err := pgsql.DB.Prepare(
+		`SELECT id, name, env_id FROM departments WHERE env_id = $1`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	var deps []Department
+	rows, err := stmt.Query(&envId)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for rows.Next() {
+		var dep Department
+		err = rows.Scan(&dep.Id, &dep.Name, &dep.EnvId)
+		if err != nil {
+			log.Fatal(err)
+		}
+		deps = append(deps, dep)
+	}
+
+	return deps, nil
+}
