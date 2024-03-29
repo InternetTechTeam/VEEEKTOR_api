@@ -9,7 +9,8 @@ VALUES ('admin', 1), ('О7', 2), ('О6', 2), ('О4', 2), ('И9', 2), ('Р1', 2);
 
 INSERT INTO users (email, password, name, patronymic, surname, role_id, dep_id) 
 VALUES 
-('spamer@gmail.com', '88888888', 'ivan', 'ivanovich', 'ivanov', 3, 1);
+('spamer@gmail.com', '88888888', 'ivan', 'ivanovich', 'ivanov', 3, 1),
+('teacher@mail.ru', '88888888', 'koly', 'pidor', 'fokin', 2, 2);
 
 INSERT INTO courses (name, term, teacher_id, markdown, dep_id)
 VALUES 

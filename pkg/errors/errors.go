@@ -58,6 +58,12 @@ var (
 	// Courses
 	ErrCoursesNotFound = errors.New(
 		"courses not found")
+	ErrTermNotValid = errors.New(
+		"invalid term number")
+	ErrTeacherNotFound = errors.New(
+		"teacher not found")
+	ErrCourseNameInvalid = errors.New(
+		"course name not valid")
 )
 
 func ResponseWithError(w http.ResponseWriter, r *http.Request,
