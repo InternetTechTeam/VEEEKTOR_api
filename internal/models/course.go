@@ -77,3 +77,52 @@ func GetCourseById(courseId int) (Course, error) {
 
 	return course, nil
 }
+
+func (c *Course) Validate() error {
+	if c.Term <= 0 || c.Term > 14 {
+		return e.ErrTermNotValid
+	}
+
+	if len(c.Name) == 0 {
+		return e.ErrCourseNameInvalid
+	}
+
+	stmt, err := pgsql.DB.Prepare(
+		`SELECT role_id from users WHERE id = $1`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	var roleId int
+	if stmt.QueryRow(&c.TeacherId).Scan(&roleId); roleId != 2 && roleId != 3 {
+		return e.ErrTeacherNotFound
+	}
+
+	if _, err = GetDepartmentById(c.DepId); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Course) Insert() error {
+	stmt, err := pgsql.DB.Prepare(
+		`INSERT INTO courses 
+		(name, term, teacher_id, markdown, dep_id) 
+		VALUES ($1, $2, $3, $4, $5)`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	if err := c.Validate(); err != nil {
+		return err
+	}
+
+	if _, err = stmt.Exec(&c.Name, &c.Term,
+		&c.TeacherId, &c.Markdown,
+		&c.DepId); err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+}
