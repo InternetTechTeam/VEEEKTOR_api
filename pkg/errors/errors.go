@@ -33,6 +33,8 @@ var (
 		"user not found")
 	ErrUserExists = errors.New(
 		"user with this login already exists")
+	ErrAccessDenied = errors.New(
+		"permission denied")
 	// Sessions
 	ErrSessionNotExist = errors.New(
 		"session for this token doesn't exist")

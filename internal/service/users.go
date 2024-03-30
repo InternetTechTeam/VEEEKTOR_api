@@ -38,7 +38,14 @@ func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 // Response codes:
 // 200, 400, 401, 404, 500.
 func UsersGetHandler(w http.ResponseWriter, r *http.Request) {
-	authorized, err := auth.CheckUserAuthorized(r)
+	accessToken, err := auth.GetAccessTokenFromHeader(r)
+	if err != nil {
+		e.ResponseWithError(
+			w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	authorized, err := auth.CheckUserAuthorized(accessToken)
 	if err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusUnauthorized, err)
@@ -51,13 +58,14 @@ func UsersGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := auth.GetUserIdFromRequest(r)
+	claims, err := auth.GetTokenClaims(accessToken)
 	if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
+		e.ResponseWithError(
+			w, r, http.StatusBadRequest, err)
 		return
 	}
 
-	user, err := models.GetUserById(userId)
+	user, err := models.GetUserById(claims["user_id"].(int))
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusNotFound, e.ErrUserNotFound)
 		return
