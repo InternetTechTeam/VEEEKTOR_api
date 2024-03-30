@@ -35,7 +35,13 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 // Response codes:
 // 200, 400, 401, 404.
 func CoursesGetByUserIdHandler(w http.ResponseWriter, r *http.Request) {
-	authorized, err := auth.CheckUserAuthorized(r)
+	accessToken, err := auth.GetAccessTokenFromHeader(r)
+	if err != nil {
+		e.ResponseWithError(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	authorized, err := auth.CheckUserAuthorized(accessToken)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
 		return
@@ -50,7 +56,6 @@ func CoursesGetByUserIdHandler(w http.ResponseWriter, r *http.Request) {
 
 	rawQuery := r.URL.Query()
 	if rawQuery.Has("id") {
-
 		var courseId int
 		if courseId, err = strconv.Atoi(rawQuery.Get("id")); err != nil {
 			e.ResponseWithError(
@@ -68,13 +73,13 @@ func CoursesGetByUserIdHandler(w http.ResponseWriter, r *http.Request) {
 		jsonBytes, _ = json.Marshal(course)
 
 	} else {
-		userId, err := auth.GetUserIdFromRequest(r)
+		claims, err := auth.GetTokenClaims(accessToken)
 		if err != nil {
 			e.ResponseWithError(w, r, http.StatusBadRequest, err)
 			return
 		}
 
-		courses, err := models.GetAllCoursesByUserId(userId)
+		courses, err := models.GetAllCoursesByUserId(claims["user_id"].(int))
 		if err != nil {
 			e.ResponseWithError(w, r, http.StatusNotFound, err)
 			return
@@ -90,6 +95,8 @@ func CoursesGetByUserIdHandler(w http.ResponseWriter, r *http.Request) {
 // Course insert logic.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
+// Course creation allowed only to teachers and admins.
+// So token claims should contain role_id = 2/3.
 // Response: Error message StatusOk:
 // Expected body:
 // name : name of course;
@@ -98,16 +105,38 @@ func CoursesGetByUserIdHandler(w http.ResponseWriter, r *http.Request) {
 // markdown : markdown text of course;
 // dep_id : id of course department.
 // Response codes:
-// 200, 400, 401.
+// 200, 400, 401, 403.
 func CoursesCreateHandler(w http.ResponseWriter, r *http.Request) {
-	authorized, err := auth.CheckUserAuthorized(r)
+	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
+		e.ResponseWithError(
+			w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	authorized, err := auth.CheckUserAuthorized(accessToken)
+	if err != nil {
+		e.ResponseWithError(
+			w, r, http.StatusUnauthorized, err)
 		return
 	}
 
 	if !authorized {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
+		e.ResponseWithError(
+			w, r, http.StatusUnauthorized, e.ErrTokenExpired)
+		return
+	}
+
+	claims, err := auth.GetTokenClaims(accessToken)
+	if err != nil {
+		e.ResponseWithError(
+			w, r, http.StatusBadRequest, e.ErrTokenNotValid)
+		return
+	}
+
+	if claims["role_id"] != 2 && claims["role_id"] != 3 {
+		e.ResponseWithError(
+			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
 	}
 

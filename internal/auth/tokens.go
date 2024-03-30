@@ -121,6 +121,10 @@ func GetTokenClaims(accessToken string) (jwt.MapClaims, error) {
 
 	claims := token.Claims.(jwt.MapClaims)
 
+	// Convert json number to golang int
+	claims["user_id"] = int(claims["user_id"].(float64))
+	claims["role_id"] = int(claims["role_id"].(float64))
+
 	return claims, nil
 }
 
@@ -160,29 +164,7 @@ func IsRefreshTokenExpired(refreshToken string) (bool, error) {
 	return true, nil
 }
 
-func GetUserIdFromRequest(r *http.Request) (int, error) {
-	accessToken, err := GetAccessTokenFromHeader(r)
-	if err != nil {
-		return 0, err
-	}
-
-	claims, err := GetTokenClaims(accessToken)
-	if err != nil {
-		return 0, err
-	}
-
-	// Cast json number to golang int
-	userId := int(claims["user_id"].(float64))
-
-	return userId, nil
-}
-
-func CheckUserAuthorized(r *http.Request) (bool, error) {
-	accessToken, err := GetAccessTokenFromHeader(r)
-	if err != nil {
-		return false, err
-	}
-
+func CheckUserAuthorized(accessToken string) (bool, error) {
 	exp, err := IsAccessTokenExpired(accessToken)
 	if err != nil {
 		return false, err
@@ -194,3 +176,35 @@ func CheckUserAuthorized(r *http.Request) (bool, error) {
 
 	return true, nil
 }
+
+// func GetUserIdFromRequest(r *http.Request) (int, error) {
+// 	accessToken, err := GetAccessTokenFromHeader(r)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+
+// 	claims, err := GetTokenClaims(accessToken)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+
+// 	// Cast json number to golang int
+// 	userId := int(claims["user_id"].(float64))
+
+// 	return userId, nil
+// }
+
+// func GetUserRoleFromRequest(r *http.Request) (int, error) {
+// 	accessToken, err := GetAccessTokenFromHeader(r)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+
+// 	claims, err := GetTokenClaims(accessToken)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+
+// 	roleId := int(claims["role_id"].(float64))
+// 	return roleId, nil
+// }
