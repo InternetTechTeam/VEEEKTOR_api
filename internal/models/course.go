@@ -109,7 +109,7 @@ func (c *Course) Insert() error {
 	stmt, err := pgsql.DB.Prepare(
 		`INSERT INTO courses 
 		(name, term, teacher_id, markdown, dep_id) 
-		VALUES ($1, $2, $3, $4, $5)`)
+		VALUES ($1, $2, $3, $4, $5) RETURNING id`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -118,9 +118,28 @@ func (c *Course) Insert() error {
 		return err
 	}
 
-	if _, err = stmt.Exec(&c.Name, &c.Term,
+	if err = stmt.QueryRow(&c.Name, &c.Term,
 		&c.TeacherId, &c.Markdown,
-		&c.DepId); err != nil {
+		&c.DepId).Scan(&c.Id); err != nil {
+		log.Fatal(err)
+	}
+
+	if err = LinkUserWithCourse(c.TeacherId, c.Id); err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+}
+
+// Expected that link will be unique. Any error cause Fatal.
+func LinkUserWithCourse(userId, courseId int) error {
+	stmt, err := pgsql.DB.Prepare(
+		`INSERT INTO user_courses (user_id, course_id) VALUES ($1, $2)`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	if _, err = stmt.Exec(userId, courseId); err != nil {
 		log.Fatal(err)
 	}
 
