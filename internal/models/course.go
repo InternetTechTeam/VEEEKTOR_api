@@ -16,44 +16,17 @@ type Course struct {
 	DepId     int    `json:"dep_id"`
 }
 
-func GetAllCoursesByUserId(userId int) ([]Course, error) {
-	selCourseIdStmt, err := pgsql.DB.Prepare(
-		`SELECT course_id from user_courses WHERE user_id=$1`)
-	if err != nil {
-		log.Fatal(e.ErrCantPrepareDbStmt)
-	}
-
-	selCourseStmt, err := pgsql.DB.Prepare(
-		`SELECT name, term, teacher_id, dep_id 
-		 FROM courses WHERE id=$1`)
-	if err != nil {
-		log.Fatal(e.ErrCantPrepareDbStmt)
-	}
-
-	var rows *sql.Rows
-	if rows, err = selCourseIdStmt.Query(&userId); err != nil {
-		log.Fatal(err)
-	}
-	var courses []Course
-	for rows.Next() {
-		var course Course
-
-		if err = rows.Scan(&course.Id); err != nil {
-			log.Fatal(err)
-		}
-
-		if err := selCourseStmt.QueryRow(&course.Id).Scan(
-			&course.Name, &course.Term,
-			&course.TeacherId, &course.DepId); err != nil {
-			if err != sql.ErrNoRows {
-				log.Fatal(err)
-			}
-			return courses, e.ErrCoursesNotFound
-		}
-		courses = append(courses, course)
-	}
-
-	return courses, nil
+type CourseMultipleExportDTO struct {
+	Id      int    `json:"id"`
+	Name    string `json:"name"`
+	Term    int    `json:"term"`
+	Dep     string `json:"department"`
+	Teacher struct {
+		Name       string `json:"name"`
+		Patronymic string `json:"patronymic"`
+		Surname    string `json:"surname"`
+		Dep        string `json:"department"`
+	} `json:"teacher"`
 }
 
 func GetCourseById(courseId int) (Course, error) {
@@ -76,6 +49,51 @@ func GetCourseById(courseId int) (Course, error) {
 	}
 
 	return course, nil
+}
+
+func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
+	selCourseIdStmt, err := pgsql.DB.Prepare(
+		`SELECT course_id from user_courses WHERE user_id=$1`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	selCourseStmt, err := pgsql.DB.Prepare(
+		`SELECT c.name, c.term, d_c.name, 
+		u.name, u.patronymic, u.surname, d_u.name 
+		FROM courses AS c 
+		JOIN users AS u ON c.teacher_id = u.id 
+		JOIN departments AS d_u ON d_u.id = u.dep_id 
+		JOIN departments AS d_c ON d_c.id = c.dep_id
+		WHERE c.id = $1`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	var rows *sql.Rows
+	if rows, err = selCourseIdStmt.Query(&userId); err != nil {
+		log.Fatal(err)
+	}
+	var courses []CourseMultipleExportDTO
+	for rows.Next() {
+		var c CourseMultipleExportDTO
+
+		if err = rows.Scan(&c.Id); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := selCourseStmt.QueryRow(&c.Id).Scan(
+			&c.Name, &c.Term, &c.Dep, &c.Teacher.Name,
+			&c.Teacher.Patronymic, &c.Teacher.Surname, &c.Teacher.Dep); err != nil {
+			if err != sql.ErrNoRows {
+				log.Fatal(err)
+			}
+			return courses, e.ErrCoursesNotFound
+		}
+		courses = append(courses, c)
+	}
+
+	return courses, nil
 }
 
 func (c *Course) Validate() error {
