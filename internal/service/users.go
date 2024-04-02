@@ -40,28 +40,16 @@ func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 func UsersGetHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	authorized, err := auth.CheckUserAuthorized(accessToken)
-	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusUnauthorized, err)
-		return
-	}
-
-	if !authorized {
-		e.ResponseWithError(
-			w, r, http.StatusUnauthorized, e.ErrTokenExpired)
+		e.ResponseWithError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	claims, err := auth.GetTokenClaims(accessToken)
-	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusBadRequest, err)
+	if err == e.ErrTokenExpired {
+		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
+		return
+	} else if err != nil {
+		e.ResponseWithError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
