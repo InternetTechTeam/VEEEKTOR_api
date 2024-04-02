@@ -41,14 +41,12 @@ func CoursesGetByUserIdHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authorized, err := auth.CheckUserAuthorized(accessToken)
-	if err != nil {
+	claims, err := auth.GetTokenClaims(accessToken)
+	if err == e.ErrTokenExpired {
 		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
 		return
-	}
-
-	if !authorized {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
+	} else if err != nil {
+		e.ResponseWithError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
@@ -73,12 +71,6 @@ func CoursesGetByUserIdHandler(w http.ResponseWriter, r *http.Request) {
 		jsonBytes, _ = json.Marshal(course)
 
 	} else {
-		claims, err := auth.GetTokenClaims(accessToken)
-		if err != nil {
-			e.ResponseWithError(w, r, http.StatusBadRequest, err)
-			return
-		}
-
 		courses, err := models.GetAllCoursesByUserId(claims["user_id"].(int))
 		if err != nil {
 			e.ResponseWithError(w, r, http.StatusNotFound, err)
@@ -109,28 +101,16 @@ func CoursesGetByUserIdHandler(w http.ResponseWriter, r *http.Request) {
 func CoursesCreateHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	authorized, err := auth.CheckUserAuthorized(accessToken)
-	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusUnauthorized, err)
-		return
-	}
-
-	if !authorized {
-		e.ResponseWithError(
-			w, r, http.StatusUnauthorized, e.ErrTokenExpired)
+		e.ResponseWithError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	claims, err := auth.GetTokenClaims(accessToken)
-	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusBadRequest, e.ErrTokenNotValid)
+	if err == e.ErrTokenExpired {
+		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
+		return
+	} else if err != nil {
+		e.ResponseWithError(w, r, http.StatusBadRequest, err)
 		return
 	}
 

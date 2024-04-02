@@ -107,6 +107,7 @@ func GetAccessTokenFromHeader(r *http.Request) (string, error) {
 	return headerParts[1], nil
 }
 
+// Also checks authorization
 func GetTokenClaims(accessToken string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(accessToken,
 		func(token *jwt.Token) (i interface{}, err error) {
@@ -115,6 +116,11 @@ func GetTokenClaims(accessToken string) (jwt.MapClaims, error) {
 			}
 			return AccessKey, nil
 		})
+	if ve, ok := err.(*jwt.ValidationError); ok {
+		if ve.Errors&jwt.ValidationErrorExpired != 0 {
+			return nil, e.ErrTokenExpired
+		}
+	}
 	if err != nil {
 		return nil, e.ErrTokenNotValid
 	}
@@ -126,22 +132,6 @@ func GetTokenClaims(accessToken string) (jwt.MapClaims, error) {
 	claims["role_id"] = int(claims["role_id"].(float64))
 
 	return claims, nil
-}
-
-func IsAccessTokenExpired(accessToken string) (bool, error) {
-	var claims jwt.MapClaims
-	var err error
-	if claims, err = GetTokenClaims(accessToken); err != nil {
-		return true, err
-	}
-
-	// Cast json number to golang int
-	exp := claims["exp"].(float64)
-	if int64(exp) > time.Now().Unix() {
-		return false, nil
-	}
-
-	return true, nil
 }
 
 func IsRefreshTokenExpired(refreshToken string) (bool, error) {
@@ -158,19 +148,6 @@ func IsRefreshTokenExpired(refreshToken string) (bool, error) {
 	}
 
 	if expiresAt > time.Now().Unix() {
-		return false, nil
-	}
-
-	return true, nil
-}
-
-func CheckUserAuthorized(accessToken string) (bool, error) {
-	exp, err := IsAccessTokenExpired(accessToken)
-	if err != nil {
-		return false, err
-	}
-
-	if exp {
 		return false, nil
 	}
 
