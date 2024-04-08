@@ -58,6 +58,10 @@ var (
 	ErrEdEnvNotFound = errors.New(
 		"educational environment with this id not found")
 	// Courses
+	ErrCourseIdNull = errors.New(
+		"course id must be set")
+	ErrCourseNotFound = errors.New(
+		"course not found")
 	ErrCoursesNotFound = errors.New(
 		"courses not found")
 	ErrTermNotValid = errors.New(
