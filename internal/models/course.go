@@ -97,6 +97,21 @@ func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
 }
 
 func (c *Course) Validate() error {
+	if c.Id != 0 {
+		stmt, err := pgsql.DB.Prepare(
+			`SELECT 1 FROM courses WHERE id=$1`)
+		if err != nil {
+			log.Fatal(err)
+		}
+		var exist bool
+		if err = stmt.QueryRow(&c.Id).Scan(&exist); err != nil {
+			if err == sql.ErrNoRows {
+				return e.ErrCourseNotFound
+			}
+			log.Fatal(err)
+		}
+	}
+
 	if c.Term <= 0 || c.Term > 14 {
 		return e.ErrTermNotValid
 	}
@@ -124,16 +139,16 @@ func (c *Course) Validate() error {
 }
 
 func (c *Course) Insert() error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+
 	stmt, err := pgsql.DB.Prepare(
 		`INSERT INTO courses 
 		(name, term, teacher_id, markdown, dep_id) 
 		VALUES ($1, $2, $3, $4, $5) RETURNING id`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
-	}
-
-	if err := c.Validate(); err != nil {
-		return err
 	}
 
 	if err = stmt.QueryRow(&c.Name, &c.Term,
@@ -143,6 +158,32 @@ func (c *Course) Insert() error {
 	}
 
 	if err = LinkUserWithCourse(c.TeacherId, c.Id); err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+}
+
+func (c *Course) Update() error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+
+	if c.Id == 0 {
+		return e.ErrCourseIdNull
+	}
+
+	stmt, err := pgsql.DB.Prepare(
+		`UPDATE courses SET name=$2, term=$3, 
+		teacher_id=$4, markdown=$5, dep_id=$6 
+		WHERE id=$1`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	if _, err = stmt.Exec(
+		&c.Id, &c.Name, &c.Term, &c.TeacherId,
+		&c.Markdown, &c.DepId); err != nil {
 		log.Fatal(err)
 	}
 
