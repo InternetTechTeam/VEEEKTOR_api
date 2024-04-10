@@ -16,7 +16,6 @@ VALUES
 ('studentO4@mail.com', '88888888', 'sasha', 'teapet', 'ruric', 1, 4),
 ('studentI9@mail.com', '88888888', 'vitya', 'nextov', 'kuropyat', 1, 5),
 ('studentP1@mail.com', '88888888', 'maria', 'mariovna', 'petrova', 1, 6),
-('studentP1@mail.com', '88888888', 'maria', 'mariovna', 'petrova', 1, 6),
 ('studentALL@mail.com', '88888888', 'genius', 'vse', 'kursi', 1, 2),
 ('teacherO6@mail.ru', '88888888', 'teacher', 'teacher', 'teacher', 2, 3),
 ('teacherO4@mail.ru', '88888888', 'teacher', 'teacher', 'teacher', 2, 4),
@@ -41,4 +40,4 @@ INSERT INTO user_courses (user_id, course_id)
 VALUES (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
 (3, 1), (3, 2), (3, 3),
 (4, 7), (5, 8), (6, 9), (7, 10),
-(9, 1), (9, 2), (9, 3), (9, 4), (9, 5), (9, 6), (9, 7), (9, 8), (9, 9), (9, 10);
+(8, 1), (8, 2), (8, 3), (8, 4), (8, 5), (8, 6), (8, 7), (8, 8), (8, 9), (8, 10);
