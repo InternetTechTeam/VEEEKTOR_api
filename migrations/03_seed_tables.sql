@@ -23,7 +23,7 @@ VALUES
 ('teacherI9@mail.ru', '88888888', 'teacher', 'teacher', 'teacher', 2, 5),
 ('teacherP1@mail.ru', '88888888', 'teacher', 'teacher', 'teacher', 2, 6);
 
-INSERT INTO courses (name, term, teacher_id, markdown, dep_id)
+INSERT INTO courses (name, term, teacher_id, markdown, dep_id) 
 VALUES 
 ('Компьютерный практикум', 1, 1, 'Some markdown1', 2),
 ('Информационные системы и технологии', 2, 1, 'Some markdown2', 2),
@@ -38,4 +38,7 @@ VALUES
 
 
 INSERT INTO user_courses (user_id, course_id) 
-VALUES (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (3, 1), (3, 2), (3, 3), (4, 7), (5, 8), (6, 9), (7, 10);
+VALUES (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
+(3, 1), (3, 2), (3, 3),
+(4, 7), (5, 8), (6, 9), (7, 10),
+(9, 1), (9, 2), (9, 3), (9, 4), (9, 5), (9, 6), (9, 7), (9, 8), (9, 9), (9, 10);
