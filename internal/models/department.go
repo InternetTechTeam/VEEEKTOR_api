@@ -13,6 +13,7 @@ type Department struct {
 	EnvId int    `json:"env_id"`
 }
 
+// Errors: -
 func GetAllDepartments() ([]Department, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, name, env_id FROM departments`)
@@ -38,6 +39,7 @@ func GetAllDepartments() ([]Department, error) {
 	return deps, nil
 }
 
+// Errors: ErrDepNotFound
 func GetDepartmentById(depId int) (Department, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, name, env_id FROM departments WHERE id = $1`)
@@ -57,6 +59,7 @@ func GetDepartmentById(depId int) (Department, error) {
 	return dep, nil
 }
 
+// Errors: -
 func GetAllDepartmentsByEnvironmentId(envId int) ([]Department, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, name, env_id FROM departments WHERE env_id = $1`)

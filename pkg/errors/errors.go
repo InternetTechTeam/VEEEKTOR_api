@@ -68,7 +68,7 @@ var (
 		"invalid term number")
 	ErrTeacherNotFound = errors.New(
 		"teacher not found")
-	ErrCourseNameInvalid = errors.New(
+	ErrCourseNameNotValid = errors.New(
 		"course name not valid")
 )
 

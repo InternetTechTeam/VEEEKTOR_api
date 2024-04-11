@@ -28,7 +28,7 @@ const (
 	FullNameMaxLen = 30
 )
 
-// Export oriented errors
+// Errors:
 func (usr *User) Insert() error {
 	stmt, err := pgsql.DB.Prepare(
 		`INSERT INTO users (
@@ -42,21 +42,22 @@ func (usr *User) Insert() error {
 		&usr.Email, &usr.Password, &usr.Name,
 		&usr.Patronymic, &usr.Surname,
 		&usr.RoleId, &usr.DepId); err != nil {
-		return err
+		log.Fatal(err)
 	}
 	return nil
 }
 
-// Export oriented error message
+// Errors: message
 func (usr *User) PasswordAndLoginValidate() error {
 	if len(usr.Password) < PasswordMinLen || len(usr.Password) > PasswordMaxLen {
-		msg := fmt.Sprintf(`Password must contain at least %d and no more than %d symbols lenght`, PasswordMinLen, PasswordMaxLen)
+		msg := fmt.Sprintf(`password must contain at least %d and no more than %d symbols lenght`, PasswordMinLen, PasswordMaxLen)
 		return errors.New(msg)
 	}
 	return nil
 }
 
-// Export oriented errors
+// Errors: message, ErrMissingFields, ErrRoleNotFound,
+// ErrDepNotFound
 func (usr *User) Validate() error {
 	if usr.RoleId == 0 || usr.DepId == 0 ||
 		usr.Password == "" || usr.Email == "" ||
@@ -66,25 +67,25 @@ func (usr *User) Validate() error {
 
 	if len(usr.Password) < PasswordMinLen ||
 		len(usr.Password) > PasswordMaxLen {
-		msg := fmt.Sprintf(`Password must contain at least %d and no more than %d symbols lenght`, PasswordMinLen, PasswordMaxLen)
+		msg := fmt.Sprintf(`password must contain at least %d and no more than %d symbols lenght`, PasswordMinLen, PasswordMaxLen)
 		return errors.New(msg)
 	}
 
 	if len(usr.Name) < FullNameMinLen ||
 		len(usr.Name) > FullNameMaxLen {
-		msg := fmt.Sprintf(`Name must contain at least %d and no more than %d symbols lenght`, FullNameMinLen, FullNameMaxLen)
+		msg := fmt.Sprintf(`name must contain at least %d and no more than %d symbols lenght`, FullNameMinLen, FullNameMaxLen)
 		return errors.New(msg)
 	}
 
 	if len(usr.Patronymic) < FullNameMinLen ||
 		len(usr.Patronymic) > FullNameMaxLen {
-		msg := fmt.Sprintf(`Patronymic must contain at least %d and no more than %d symbols lenght`, FullNameMinLen, FullNameMaxLen)
+		msg := fmt.Sprintf(`patronymic must contain at least %d and no more than %d symbols lenght`, FullNameMinLen, FullNameMaxLen)
 		return errors.New(msg)
 	}
 
 	if len(usr.Surname) < FullNameMinLen ||
 		len(usr.Surname) > FullNameMaxLen {
-		msg := fmt.Sprintf(`Surname must contain at least %d and no more than %d symbols lenght`, FullNameMinLen, FullNameMaxLen)
+		msg := fmt.Sprintf(`surname must contain at least %d and no more than %d symbols lenght`, FullNameMinLen, FullNameMaxLen)
 		return errors.New(msg)
 	}
 
@@ -112,6 +113,7 @@ type SignInInput struct {
 	Password string `json:"password" binding:"required,min=8,max=50"`
 }
 
+// Errors: message
 func (inp *SignInInput) Validate() error {
 	if len(inp.Email) < 4 || len(inp.Email) > 64 {
 		return errors.New("email not valid")
@@ -119,13 +121,13 @@ func (inp *SignInInput) Validate() error {
 
 	if len(inp.Password) < PasswordMinLen ||
 		len(inp.Password) > PasswordMaxLen {
-		msg := fmt.Sprintf(`Password must contain at least %d and no more than %d symbols lenght`, PasswordMinLen, PasswordMaxLen)
+		msg := fmt.Sprintf(`password must contain at least %d and no more than %d symbols lenght`, PasswordMinLen, PasswordMaxLen)
 		return errors.New(msg)
 	}
 	return nil
 }
 
-// Export oriented errors
+// Errors: ErrUserNotFound
 func GetUserByEmailAndPassword(inp SignInInput) (User, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, email, password, name, 
@@ -149,7 +151,7 @@ func GetUserByEmailAndPassword(inp SignInInput) (User, error) {
 	return usr, nil
 }
 
-// Export oriented error message
+// Errors: ErrUserNotFound
 func GetUserById(userId int) (User, error) {
 	stmt, err := pgsql.DB.Prepare(`
 	SELECT email, password, name, 
