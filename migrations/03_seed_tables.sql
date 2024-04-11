@@ -1,11 +1,15 @@
 INSERT INTO roles (name) 
-VALUES ('student'), ('teacher'), ('admin');
+VALUES 
+('student'), ('teacher'), ('admin');
 
 INSERT INTO educational_envs (name) 
-VALUES ('admin'), ('voenmeh');
+VALUES 
+('admin'), ('voenmeh');
 
 INSERT INTO departments (name, env_id) 
-VALUES ('admin', 1), ('О7', 2), ('О6', 2), ('О4', 2), ('И9', 2), ('Р1', 2);
+VALUES 
+('admin', 1), ('О7', 2), ('О6', 2), 
+('О4', 2), ('И9', 2), ('Р1', 2);
 
 INSERT INTO users (email, password, name, patronymic, surname, role_id, dep_id) 
 VALUES 
@@ -37,7 +41,35 @@ VALUES
 
 
 INSERT INTO user_courses (user_id, course_id) 
-VALUES (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
-(3, 1), (3, 2), (3, 3),
-(4, 7), (5, 8), (6, 9), (7, 10),
-(8, 1), (8, 2), (8, 3), (8, 4), (8, 5), (8, 6), (8, 7), (8, 8), (8, 9), (8, 10);
+VALUES 
+(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), 
+(1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
+(3, 1), (3, 2), (3, 3), (4, 7), (5, 8), 
+(6, 9), (7, 10), (8, 1), (8, 2), (8, 3), 
+(8, 4), (8, 5), (8, 6), (8, 7), (8, 8), 
+(8, 9), (8, 10);
+
+INSERT INTO locations (location) 
+VALUES 
+('At home'), ('In class');
+
+INSERT INTO nested_info (course_id, markdown)
+VALUES 
+(6, 'БЖД = круто.');
+
+INSERT INTO nested_tests 
+(course_id, opens, closes, 
+tasks_count, topic, location_id, 
+attempts, password, time_limit)
+VALUES 
+(6, '1999-01-08 04:05:06', '2026-09-08 00:00:00',
+15, 'Железная дорога', 2, 1, NULL, '00:15:00'),
+(4, '1999-01-08 04:05:06', '2026-09-08 00:00:00',
+15, 'Карл Маркс', 2, 1, NULL, '00:20:00');
+
+INSERT INTO nested_labs 
+(course_id, opens, closes, topic, requirements, 
+example, location_id, attempts)
+VALUES
+(6, '1999-01-08 04:05:06', '2026-09-08 00:00:00',
+'Лабораторная работа 1', NULL, NULL, 1, 0);
