@@ -77,10 +77,10 @@ func UpdateToken(w http.ResponseWriter, r *http.Request) {
 	// Write jwt and refresh token pair
 	jsonBytes, _ := json.Marshal(tokens)
 	http.SetCookie(w, &http.Cookie{
-		Name:     "refresh_token",
-		Value:    tokens.RefreshToken,
-		Path:     "/",
-		Secure:   true,
+		Name:  "refresh_token",
+		Value: tokens.RefreshToken,
+		Path:  "/",
+		// Secure:   true, *causes cookie not set with http unsecure protocol*
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	})
@@ -105,10 +105,10 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	auth.DeleteSessionByRT(refreshToken)
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "refresh_token",
-		Value:    "",
-		Path:     "/",
-		Secure:   true,
+		Name:  "refresh_token",
+		Value: "",
+		Path:  "/",
+		// Secure:   true, *causes cookie not set with http unsecure protocol*
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	})
