@@ -12,14 +12,14 @@ import (
 func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		CoursesGetByUserIdHandler(w, r)
+		CoursesGetHandler(w, r)
 	case http.MethodPost:
 		CoursesCreateHandler(w, r)
 	case http.MethodPut:
 		CoursesUpdateHandler(w, r)
 	default:
 		e.ResponseWithError(w, r, http.StatusMethodNotAllowed,
-			e.ErrOnlyGetAllowed)
+			e.ErrMethodNotAllowed)
 	}
 }
 
@@ -36,7 +36,7 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 // dep_id : id of course department.
 // Response codes:
 // 200, 400, 401, 404.
-func CoursesGetByUserIdHandler(w http.ResponseWriter, r *http.Request) {
+func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -82,7 +82,6 @@ func CoursesGetByUserIdHandler(w http.ResponseWriter, r *http.Request) {
 		jsonBytes, _ = json.Marshal(courses)
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Write(jsonBytes)
 }
 

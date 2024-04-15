@@ -70,6 +70,13 @@ var (
 		"teacher not found")
 	ErrCourseNameNotValid = errors.New(
 		"course name not valid")
+	ErrUserNotBelongToCourse = errors.New(
+		"user not belong to that course")
+	// Nested info
+	ErrNestedInfoNotFound = errors.New(
+		"nested info not found")
+	ErrNestedInfosNotFound = errors.New(
+		"nested info pages not found")
 )
 
 func ResponseWithError(w http.ResponseWriter, r *http.Request,

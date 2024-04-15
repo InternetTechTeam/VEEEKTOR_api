@@ -46,7 +46,7 @@ func GetCourseById(courseId int) (Course, error) {
 		if err != sql.ErrNoRows {
 			log.Fatal(err)
 		}
-		return course, e.ErrCoursesNotFound
+		return course, e.ErrCourseNotFound
 	}
 
 	return course, nil
@@ -213,4 +213,22 @@ func LinkUserWithCourse(userId, courseId int) error {
 	}
 
 	return nil
+}
+
+func CheckUserBelongsToCourse(userId, courseId int) (bool, error) {
+	stmt, err := pgsql.DB.Prepare(
+		`SELECT 1 FROM user_courses WHERE user_id = $1 AND course_id = $2`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	var belongs bool
+	if err = stmt.QueryRow(&userId, &courseId).Scan(&belongs); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		log.Fatal(err)
+	}
+
+	return true, nil
 }
