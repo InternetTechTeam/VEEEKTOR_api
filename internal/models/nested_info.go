@@ -132,3 +132,17 @@ func (info *NestedInfo) Update() error {
 
 	return nil
 }
+
+func DeleteNestedInfoById(infoId int) error {
+	stmt, err := pgsql.DB.Prepare(
+		`DELETE FROM nested_info WHERE id = $1`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	if _, err = stmt.Exec(&infoId); err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+}

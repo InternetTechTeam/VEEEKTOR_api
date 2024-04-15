@@ -89,7 +89,7 @@ func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
 // Course creation allowed only to teachers and admins.
-// So token claims should contain role_id = 2/3.
+// Token claims should contain role_id = 2/3.
 // Response: Error message or StatusOk:
 // Expected body:
 // name : name of course;
@@ -145,7 +145,7 @@ func CoursesCreateHandler(w http.ResponseWriter, r *http.Request) {
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
 // Course update allowed only to teachers and admins.
-// So token claims should contain role_id = 2/3.
+// Token claims should contain role_id = 2/3.
 // Response: Error message or StatusOk:
 // Expected body:
 // id : id of course;
