@@ -8,9 +8,9 @@ import (
 )
 
 type NestedInfo struct {
-	Id       int
-	CourseId int
-	Markdown string
+	Id       int    `json:"id"`
+	CourseId int    `json:"course_id"`
+	Markdown string `json:"markdown,omitempty"`
 }
 
 // Errors: ErrNestedInfoNotFound
@@ -37,7 +37,7 @@ func GetNestedInfoById(infoId int) (NestedInfo, error) {
 // Errors: ErrNestedInfosNotFound
 func GetNestedInfosByCourseId(courseId int) ([]NestedInfo, error) {
 	stmt, err := pgsql.DB.Prepare(
-		`SELECT id, course_id, markdown 
+		`SELECT id, course_id 
 		FROM nested_info WHERE course_id = $1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
@@ -52,7 +52,7 @@ func GetNestedInfosByCourseId(courseId int) ([]NestedInfo, error) {
 	for rows.Next() {
 		var info NestedInfo
 		if err = rows.Scan(
-			&info.Id, &info.CourseId, &info.Markdown); err != nil {
+			&info.Id, &info.CourseId); err != nil {
 			log.Fatal(err)
 		}
 		infos = append(infos, info)

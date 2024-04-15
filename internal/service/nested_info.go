@@ -38,37 +38,64 @@ func NestedInfoGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var jsonBytes []byte
+
 	rawQuery := r.URL.Query()
-	if !rawQuery.Has("id") {
+	if rawQuery.Has("id") {
+		infoId, err := strconv.Atoi(rawQuery.Get("id"))
+		if err != nil {
+			e.ResponseWithError(
+				w, r, http.StatusBadRequest, e.ErrUrlValueNotValid)
+			return
+		}
+
+		info, err := models.GetNestedInfoById(infoId)
+		if err != nil {
+			e.ResponseWithError(
+				w, r, http.StatusNotFound, err)
+			return
+		}
+
+		belongs, err := models.CheckUserBelongsToCourse(
+			claims["user_id"].(int), info.CourseId)
+		if err != nil || !belongs {
+			e.ResponseWithError(
+				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+			return
+		}
+
+		jsonBytes, _ = json.Marshal(info)
+
+	} else if rawQuery.Has("course_id") {
+		courseId, err := strconv.Atoi(rawQuery.Get("course_id"))
+		if err != nil {
+			e.ResponseWithError(
+				w, r, http.StatusBadRequest, e.ErrUrlValueNotValid)
+			return
+		}
+
+		belongs, err := models.CheckUserBelongsToCourse(
+			claims["user_id"].(int), courseId)
+		if err != nil || !belongs {
+			e.ResponseWithError(
+				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+			return
+		}
+
+		info, err := models.GetNestedInfosByCourseId(courseId)
+		if err != nil {
+			e.ResponseWithError(
+				w, r, http.StatusNotFound, err)
+			return
+		}
+
+		jsonBytes, _ = json.Marshal(info)
+
+	} else {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUrlValueMissing)
 		return
 	}
-
-	infoId, err := strconv.Atoi(rawQuery.Get("id"))
-	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusBadRequest, e.ErrUrlValueNotValid)
-		return
-	}
-
-	belongs, err := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), infoId)
-	if err != nil || !belongs {
-		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
-		return
-	}
-
-	info, err := models.GetNestedInfoById(infoId)
-	if err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	var jsonBytes []byte
-	jsonBytes, _ = json.Marshal(info)
 
 	w.Write(jsonBytes)
 }
