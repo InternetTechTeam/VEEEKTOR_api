@@ -96,6 +96,10 @@ func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
 		courses = append(courses, c)
 	}
 
+	if len(courses) == 0 {
+		return courses, e.ErrCoursesNotFound
+	}
+
 	return courses, nil
 }
 

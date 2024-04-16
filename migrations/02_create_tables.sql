@@ -48,7 +48,7 @@ CREATE TABLE user_courses (
     course_id INT REFERENCES courses(id) ON DELETE CASCADE
 );
 
-CREATE TABLE nested_info (
+CREATE TABLE nested_infos (
     id        SERIAL PRIMARY KEY,
     course_id INT REFERENCES courses(id) ON DELETE CASCADE,
     name      VARCHAR(512),

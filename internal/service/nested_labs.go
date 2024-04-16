@@ -9,35 +9,41 @@ import (
 	"strconv"
 )
 
-func GetNestedInfosHandler(w http.ResponseWriter, r *http.Request) {
+func GetNestedLabsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		NestedInfosGetHandler(w, r)
+		NestedLabsGetHandler(w, r)
 	case http.MethodPost:
-		NestedInfosCreateHandler(w, r)
+		NestedLabsCreateHandler(w, r)
 	case http.MethodPut:
-		NestedInfosUpdateHandler(w, r)
+		NestedLabsUpdateHandler(w, r)
 	case http.MethodDelete:
-		NestedInfosDeleteHandler(w, r)
+		NestedLabsDeleteHandler(w, r)
 	default:
 		e.ResponseWithError(w, r, http.StatusMethodNotAllowed,
 			e.ErrMethodNotAllowed)
 	}
 }
 
-// Nested infos GET logic.
-// If url contains info id, response body will contain all fields.
-// If url contains course_id, response will contain array of info pages.
-// Info pages can only be accessable for users that belongs to info page course.
+// Nested labs GET logic.
+// If url contains lab id, response body will contain all fields.
+// If url contains course_id, response will contain array of labs with few fields.
+// Lab pages can only be accessable for users that belongs to lab page course.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
 // Response: Error message or info pages by course id (info id):
-// id : id of info page;
-// course_id : id of info page course;
-// markdown (optional) : markdown of info page if id is in url values;
+// id : lab id;
+// course_id : course id;
+// opens : date, when lab opens (only on get by id) in UTC;
+// closes : date, when lab closes (only on get by id) in UTC;
+// topic : lab topic;
+// requirements : link to lab requirements (only on get by id);
+// example : link to lab example (only on get by id);
+// location_id : id of location (only on get by id);
+// attempts : number of attempts (only on get by id).
 // Response codes:
 // 200, 400, 401, 403, 404.
-func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
+func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -57,14 +63,14 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
 
 	rawQuery := r.URL.Query()
 	if rawQuery.Has("id") {
-		infoId, err := strconv.Atoi(rawQuery.Get("id"))
+		labId, err := strconv.Atoi(rawQuery.Get("id"))
 		if err != nil {
 			e.ResponseWithError(
 				w, r, http.StatusBadRequest, e.ErrUrlValueNotValid)
 			return
 		}
 
-		info, err := models.GetNestedInfoById(infoId)
+		lab, err := models.GetNestedLabById(labId)
 		if err != nil {
 			e.ResponseWithError(
 				w, r, http.StatusNotFound, err)
@@ -72,14 +78,14 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		belongs, err := models.CheckUserBelongsToCourse(
-			claims["user_id"].(int), info.CourseId)
+			claims["user_id"].(int), lab.CourseId)
 		if err != nil || !belongs {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
 		}
 
-		jsonBytes, _ = json.Marshal(info)
+		jsonBytes, _ = json.Marshal(lab)
 
 	} else if rawQuery.Has("course_id") {
 		courseId, err := strconv.Atoi(rawQuery.Get("course_id"))
@@ -97,14 +103,14 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		info, err := models.GetNestedInfosByCourseId(courseId)
+		labs, err := models.GetNestedLabsByCourseId(courseId)
 		if err != nil {
 			e.ResponseWithError(
 				w, r, http.StatusNotFound, err)
 			return
 		}
 
-		jsonBytes, _ = json.Marshal(info)
+		jsonBytes, _ = json.Marshal(labs)
 
 	} else {
 		e.ResponseWithError(
@@ -121,11 +127,17 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
 // This method allowed only to teachers and admins.
 // Response: Error message or StatusOk:
 // Expected body:
-// course_id : id of course;
-// markdown : markdown text of info page.
+// course_id : course id;
+// opens : date, when lab opens;
+// closes : date, when lab closes;
+// topic : lab topic;
+// requirements : link to lab requirements (optional);
+// example : link to lab example (optional);
+// location_id : id of location;
+// attempts : number of attempts.
 // Response codes:
 // 200, 400, 401, 403.
-func NestedInfosCreateHandler(w http.ResponseWriter, r *http.Request) {
+func NestedLabsCreateHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -150,23 +162,23 @@ func NestedInfosCreateHandler(w http.ResponseWriter, r *http.Request) {
 	bytes := make([]byte, r.ContentLength)
 	r.Body.Read(bytes)
 
-	var info models.NestedInfo
+	var lab models.NestedLab
 
-	if err = json.Unmarshal(bytes, &info); err != nil {
+	if err = json.Unmarshal(bytes, &lab); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUnableToUnmarshalBody)
 		return
 	}
 
 	belongs, err := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), info.CourseId)
+		claims["user_id"].(int), lab.CourseId)
 	if err != nil || !belongs {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
 	}
 
-	if err = info.Insert(); err != nil {
+	if err = lab.Insert(); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, err)
 		return
@@ -175,18 +187,24 @@ func NestedInfosCreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Nested info page PUT logic.
+// Nested lab page PUT logic.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
 // This method allowed only to teachers and admins.
 // Response: Error message or StatusOk:
 // Expected body:
-
-// markdown : markdown text of course;
-// dep_id : id of course department.
+// id : lab id;
+// course_id : course id;
+// opens : date, when lab opens;
+// closes : date, when lab closes;
+// topic : lab topic;
+// requirements : link to lab requirements;
+// example : link to lab example;
+// location_id : id of location;
+// attempts : number of attempts.
 // Response codes:
 // 200, 400, 401, 403.
-func NestedInfosUpdateHandler(w http.ResponseWriter, r *http.Request) {
+func NestedLabsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -211,23 +229,23 @@ func NestedInfosUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	bytes := make([]byte, r.ContentLength)
 	r.Body.Read(bytes)
 
-	var info models.NestedInfo
+	var lab models.NestedLab
 
-	if err = json.Unmarshal(bytes, &info); err != nil {
+	if err = json.Unmarshal(bytes, &lab); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUnableToUnmarshalBody)
 		return
 	}
 
 	belongs, err := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), info.CourseId)
+		claims["user_id"].(int), lab.CourseId)
 	if err != nil || !belongs {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
 	}
 
-	if err = info.Update(); err != nil {
+	if err = lab.Update(); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, err)
 		return
@@ -236,15 +254,15 @@ func NestedInfosUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Nested info page DELETE logic.
+// Nested lab page DELETE logic.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
-// This method allowed only to teachers and admins that belongs to info course.
+// This method allowed only to teachers and admins that belongs to lab course.
 // Response: Error message or StatusOk:
-// URL values should contain ?id=<id_of_info_page>
+// URL values should contain ?id=<id_of_lab>
 // Response codes:
 // 200, 400, 401, 403, 404, 500.
-func NestedInfosDeleteHandler(w http.ResponseWriter, r *http.Request) {
+func NestedLabsDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -272,14 +290,14 @@ func NestedInfosDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	infoId, err := strconv.Atoi(rawQuery.Get("id"))
+	labId, err := strconv.Atoi(rawQuery.Get("id"))
 	if err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUrlValueNotValid)
 		return
 	}
 
-	info, err := models.GetNestedInfoById(infoId)
+	info, err := models.GetNestedLabById(labId)
 	if err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusNotFound, err)
@@ -294,7 +312,7 @@ func NestedInfosDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = models.DeleteNestedInfoById(infoId); err != nil {
+	if err = models.DeleteNestedLabById(labId); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusInternalServerError, e.ErrInternalServerError)
 		return

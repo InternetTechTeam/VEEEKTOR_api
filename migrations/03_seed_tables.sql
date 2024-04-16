@@ -53,7 +53,7 @@ INSERT INTO locations (location)
 VALUES 
 ('At home'), ('In class');
 
-INSERT INTO nested_info (course_id, name, markdown)
+INSERT INTO nested_infos (course_id, name, markdown)
 VALUES 
 (6, 'БЖД', 'БЖД = круто.');
 
@@ -63,13 +63,13 @@ tasks_count, topic, location_id,
 attempts, password, time_limit)
 VALUES 
 (6, '1999-01-08 04:05:06', '2026-09-08 00:00:00',
-15, 'Железная дорога', 2, 1, NULL, '00:15:00'),
+15, 'Железная дорога', 2, 1, '', '00:15:00'),
 (4, '1999-01-08 04:05:06', '2026-09-08 00:00:00',
-15, 'Карл Маркс', 2, 1, NULL, '00:20:00');
+15, 'Карл Маркс', 2, 1, '', '00:20:00');
 
 INSERT INTO nested_labs 
 (course_id, opens, closes, topic, requirements, 
 example, location_id, attempts)
 VALUES
 (6, '1999-01-08 04:05:06', '2026-09-08 00:00:00',
-'Лабораторная работа 1', NULL, NULL, 1, 0);
+'Лабораторная работа 1', '', '', 1, 0);

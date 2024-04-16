@@ -74,9 +74,17 @@ var (
 		"user not belong to that course")
 	// Nested info
 	ErrNestedInfoNotFound = errors.New(
-		"nested info not found")
+		"nested info page not found")
 	ErrNestedInfosNotFound = errors.New(
 		"nested info pages not found")
+	// Nested lab
+	ErrNestedLabNotFound = errors.New(
+		"nested lab page not found")
+	ErrNestedLabsNotFound = errors.New(
+		"nested lab pages not found")
+	// Locations
+	ErrLocationNotFound = errors.New(
+		"location not found")
 )
 
 func ResponseWithError(w http.ResponseWriter, r *http.Request,

@@ -18,7 +18,7 @@ type NestedInfo struct {
 func GetNestedInfoById(infoId int) (NestedInfo, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, course_id, name, markdown 
-		FROM nested_info WHERE id = $1`)
+		FROM nested_infos WHERE id = $1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -39,7 +39,7 @@ func GetNestedInfoById(infoId int) (NestedInfo, error) {
 func GetNestedInfosByCourseId(courseId int) ([]NestedInfo, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, course_id, name
-		FROM nested_info WHERE course_id = $1`)
+		FROM nested_infos WHERE course_id = $1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -74,7 +74,7 @@ func (info *NestedInfo) Validate() error {
 
 	if info.Id != 0 {
 		stmt, err := pgsql.DB.Prepare(
-			`SELECT 1 FROM nested_info WHERE id=$1`)
+			`SELECT 1 FROM nested_infos WHERE id=$1`)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -100,7 +100,7 @@ func (info *NestedInfo) Insert() error {
 	}
 
 	stmt, err := pgsql.DB.Prepare(
-		`INSERT INTO nested_info(course_id, name, markdown)
+		`INSERT INTO nested_infos(course_id, name, markdown)
 		VALUES ($1, $2, $3)`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
@@ -125,7 +125,7 @@ func (info *NestedInfo) Update() error {
 	}
 
 	stmt, err := pgsql.DB.Prepare(
-		`UPDATE nested_info 
+		`UPDATE nested_infos 
 		SET course_id = $2, name = $3, markdown = $4
 		WHERE id = $1`)
 	if err != nil {
@@ -142,7 +142,7 @@ func (info *NestedInfo) Update() error {
 
 func DeleteNestedInfoById(infoId int) error {
 	stmt, err := pgsql.DB.Prepare(
-		`DELETE FROM nested_info WHERE id = $1`)
+		`DELETE FROM nested_infos WHERE id = $1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}

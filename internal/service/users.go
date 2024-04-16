@@ -131,7 +131,7 @@ func UsersSignInHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-// Basic user creation logic.
+// User creation logic.
 // Expected body:
 // "email" 	  : user email (4-64 symbols),
 // "password" : user password (8-50 symbols),
