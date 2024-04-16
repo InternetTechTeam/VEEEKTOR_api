@@ -53,9 +53,9 @@ INSERT INTO locations (location)
 VALUES 
 ('At home'), ('In class');
 
-INSERT INTO nested_info (course_id, markdown)
+INSERT INTO nested_info (course_id, name, markdown)
 VALUES 
-(6, 'БЖД = круто.');
+(6, 'БЖД', 'БЖД = круто.');
 
 INSERT INTO nested_tests 
 (course_id, opens, closes, 

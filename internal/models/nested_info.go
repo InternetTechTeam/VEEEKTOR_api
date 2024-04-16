@@ -10,21 +10,22 @@ import (
 type NestedInfo struct {
 	Id       int    `json:"id"`
 	CourseId int    `json:"course_id"`
+	Name     string `json:"name"`
 	Markdown string `json:"markdown,omitempty"`
 }
 
 // Errors: ErrNestedInfoNotFound
 func GetNestedInfoById(infoId int) (NestedInfo, error) {
 	stmt, err := pgsql.DB.Prepare(
-		`SELECT id, course_id, markdown 
+		`SELECT id, course_id, name, markdown 
 		FROM nested_info WHERE id = $1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
 
 	var info NestedInfo
-	if err = stmt.QueryRow(&infoId).Scan(
-		&info.Id, &info.CourseId, &info.Markdown); err != nil {
+	if err = stmt.QueryRow(&infoId).Scan(&info.Id,
+		&info.CourseId, &info.Name, &info.Markdown); err != nil {
 		if err != sql.ErrNoRows {
 			log.Fatal(err)
 		}
@@ -37,7 +38,7 @@ func GetNestedInfoById(infoId int) (NestedInfo, error) {
 // Errors: ErrNestedInfosNotFound
 func GetNestedInfosByCourseId(courseId int) ([]NestedInfo, error) {
 	stmt, err := pgsql.DB.Prepare(
-		`SELECT id, course_id 
+		`SELECT id, course_id, name
 		FROM nested_info WHERE course_id = $1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
@@ -52,7 +53,7 @@ func GetNestedInfosByCourseId(courseId int) ([]NestedInfo, error) {
 	for rows.Next() {
 		var info NestedInfo
 		if err = rows.Scan(
-			&info.Id, &info.CourseId); err != nil {
+			&info.Id, &info.CourseId, &info.Name); err != nil {
 			log.Fatal(err)
 		}
 		infos = append(infos, info)
@@ -65,8 +66,12 @@ func GetNestedInfosByCourseId(courseId int) ([]NestedInfo, error) {
 	return infos, nil
 }
 
-// Errors: ErrCourseNotFound, ErrNestedInfoNotFound
+// Errors: ErrCourseNotFound, ErrNestedInfoNotFound, ErrMissingFields
 func (info *NestedInfo) Validate() error {
+	if len(info.Name) == 0 {
+		return e.ErrMissingFields
+	}
+
 	if info.Id != 0 {
 		stmt, err := pgsql.DB.Prepare(
 			`SELECT 1 FROM nested_info WHERE id=$1`)
@@ -88,27 +93,28 @@ func (info *NestedInfo) Validate() error {
 	return nil
 }
 
-// Errors: ErrCourseNotFound
+// Errors: ErrCourseNotFound, ErrNestedInfoNotFound, ErrMissingFields
 func (info *NestedInfo) Insert() error {
 	if err := info.Validate(); err != nil {
 		return err
 	}
 
 	stmt, err := pgsql.DB.Prepare(
-		`INSERT INTO nested_info(course_id, markdown)
-		VALUES ($1, $2)`)
+		`INSERT INTO nested_info(course_id, name, markdown)
+		VALUES ($1, $2, $3)`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
 
-	if _, err := stmt.Exec(info.CourseId, info.Markdown); err != nil {
+	if _, err := stmt.Exec(&info.CourseId, &info.Name, &info.Markdown); err != nil {
 		log.Fatal(err)
 	}
 
 	return nil
 }
 
-// Errors: ErrCourseNotFound, ErrMissingFields, ErrNestedInfoNotFound
+// Errors: ErrCourseNotFound, ErrMissingFields,
+// ErrNestedInfoNotFound, ErrMissingFields
 func (info *NestedInfo) Update() error {
 	if info.Id == 0 {
 		return e.ErrMissingFields
@@ -119,14 +125,15 @@ func (info *NestedInfo) Update() error {
 	}
 
 	stmt, err := pgsql.DB.Prepare(
-		`UPDATE nested_info SET course_id = $2, markdown = $3
+		`UPDATE nested_info 
+		SET course_id = $2, name = $3, markdown = $4
 		WHERE id = $1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
 
 	if _, err := stmt.Exec(
-		&info.Id, &info.CourseId, &info.Markdown); err != nil {
+		&info.Id, &info.CourseId, &info.Name, &info.Markdown); err != nil {
 		log.Fatal(err)
 	}
 
