@@ -9,41 +9,42 @@ import (
 	"strconv"
 )
 
-func GetNestedLabsHandler(w http.ResponseWriter, r *http.Request) {
+func GetNestedTestsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		NestedLabsGetHandler(w, r)
+		NestedTestsGetHandler(w, r)
 	case http.MethodPost:
-		NestedLabsCreateHandler(w, r)
+		NestedTestsCreateHandler(w, r)
 	case http.MethodPut:
-		NestedLabsUpdateHandler(w, r)
+		NestedTestsUpdateHandler(w, r)
 	case http.MethodDelete:
-		NestedLabsDeleteHandler(w, r)
+		NestedTestsDeleteHandler(w, r)
 	default:
 		e.ResponseWithError(w, r, http.StatusMethodNotAllowed,
 			e.ErrMethodNotAllowed)
 	}
 }
 
-// Nested labs GET logic.
-// If url contains lab id, response body will contain all fields.
-// If url contains course_id, response will contain array of labs with few fields.
-// Lab pages can only be accessable for users that belongs to lab page course.
+// Nested tests GET logic.
+// If url contains test id, response body will contain all fields.
+// If url contains course_id, response will contain array of tests with few fields.
+// Test pages can only be accessable for users that belongs to test page course.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
-// Response: Error message or lab pages by course id (lab id):
-// id : lab id;
+// Response: Error message or info pages by course id (info id):
+// id : test id;
 // course_id : course id;
-// opens : date, when lab opens (only on get by id) in UTC;
-// closes : date, when lab closes (only on get by id) in UTC;
-// topic : lab topic;
-// requirements : link to lab requirements (only on get by id);
-// example : link to lab example (only on get by id);
+// opens : date, when test opens (only on get by id) in UTC;
+// closes : date, when test closes (only on get by id) in UTC;
+// tasks_count : count of test tasks (only on get by id);
+// topic : test topic;
 // location_id : id of location (only on get by id);
-// attempts : number of attempts (only on get by id).
+// attempts : number of attempts (only on get by id);
+// password : test password (optional) (only on get by id);
+// time_limit : time limit duration (only on get by id).
 // Response codes:
 // 200, 400, 401, 403, 404.
-func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request) {
+func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -63,14 +64,14 @@ func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request) {
 
 	rawQuery := r.URL.Query()
 	if rawQuery.Has("id") {
-		labId, err := strconv.Atoi(rawQuery.Get("id"))
+		testId, err := strconv.Atoi(rawQuery.Get("id"))
 		if err != nil {
 			e.ResponseWithError(
 				w, r, http.StatusBadRequest, e.ErrUrlValueNotValid)
 			return
 		}
 
-		lab, err := models.GetNestedLabById(labId)
+		test, err := models.GetNestedTestById(testId)
 		if err != nil {
 			e.ResponseWithError(
 				w, r, http.StatusNotFound, err)
@@ -78,14 +79,14 @@ func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		belongs, err := models.CheckUserBelongsToCourse(
-			claims["user_id"].(int), lab.CourseId)
+			claims["user_id"].(int), test.CourseId)
 		if err != nil || !belongs {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
 		}
 
-		jsonBytes, _ = json.Marshal(lab)
+		jsonBytes, _ = json.Marshal(test)
 
 	} else if rawQuery.Has("course_id") {
 		courseId, err := strconv.Atoi(rawQuery.Get("course_id"))
@@ -103,14 +104,14 @@ func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		labs, err := models.GetNestedLabsByCourseId(courseId)
+		tests, err := models.GetNestedTestsByCourseId(courseId)
 		if err != nil {
 			e.ResponseWithError(
 				w, r, http.StatusNotFound, err)
 			return
 		}
 
-		jsonBytes, _ = json.Marshal(labs)
+		jsonBytes, _ = json.Marshal(tests)
 
 	} else {
 		e.ResponseWithError(
@@ -121,23 +122,24 @@ func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-// Nested lab POST logic.
+// Nested test POST logic.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
 // This method allowed only to teachers and admins.
 // Response: Error message or StatusOk:
 // Expected body:
 // course_id : course id;
-// opens : date, when lab opens;
-// closes : date, when lab closes;
-// topic : lab topic;
-// requirements : link to lab requirements (optional);
-// example : link to lab example (optional);
+// opens : date, when test opens in UTC;
+// closes : date, when test closes in UTC;
+// tasks_count : count of test tasks;
+// topic : test topic;
 // location_id : id of location;
-// attempts : number of attempts.
+// attempts : number of attempts;
+// password : test password (optional);
+// time_limit : time limit duration (00:15:00).
 // Response codes:
 // 200, 400, 401, 403.
-func NestedLabsCreateHandler(w http.ResponseWriter, r *http.Request) {
+func NestedTestsCreateHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -162,23 +164,23 @@ func NestedLabsCreateHandler(w http.ResponseWriter, r *http.Request) {
 	bytes := make([]byte, r.ContentLength)
 	r.Body.Read(bytes)
 
-	var lab models.NestedLab
+	var test models.NestedTest
 
-	if err = json.Unmarshal(bytes, &lab); err != nil {
+	if err = json.Unmarshal(bytes, &test); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUnableToUnmarshalBody)
 		return
 	}
 
 	belongs, err := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), lab.CourseId)
+		claims["user_id"].(int), test.CourseId)
 	if err != nil || !belongs {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
 	}
 
-	if err = lab.Insert(); err != nil {
+	if err = test.Insert(); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, err)
 		return
@@ -187,24 +189,25 @@ func NestedLabsCreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Nested lab page PUT logic.
+// Nested test page PUT logic.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
 // This method allowed only to teachers and admins.
 // Response: Error message or StatusOk:
 // Expected body:
-// id : lab id;
+// id : test id;
 // course_id : course id;
-// opens : date, when lab opens;
-// closes : date, when lab closes;
-// topic : lab topic;
-// requirements : link to lab requirements;
-// example : link to lab example;
+// opens : date, when test opens in UTC;
+// closes : date, when test closes in UTC;
+// tasks_count : count of test tasks;
+// topic : test topic;
 // location_id : id of location;
-// attempts : number of attempts.
+// attempts : number of attempts;
+// password : test password (optional);
+// time_limit : time limit duration (00:15:00).
 // Response codes:
 // 200, 400, 401, 403.
-func NestedLabsUpdateHandler(w http.ResponseWriter, r *http.Request) {
+func NestedTestsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -229,23 +232,23 @@ func NestedLabsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	bytes := make([]byte, r.ContentLength)
 	r.Body.Read(bytes)
 
-	var lab models.NestedLab
+	var test models.NestedTest
 
-	if err = json.Unmarshal(bytes, &lab); err != nil {
+	if err = json.Unmarshal(bytes, &test); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUnableToUnmarshalBody)
 		return
 	}
 
 	belongs, err := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), lab.CourseId)
+		claims["user_id"].(int), test.CourseId)
 	if err != nil || !belongs {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
 	}
 
-	if err = lab.Update(); err != nil {
+	if err = test.Update(); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, err)
 		return
@@ -254,15 +257,15 @@ func NestedLabsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Nested lab page DELETE logic.
+// Nested test page DELETE logic.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
-// This method allowed only to teachers and admins that belongs to lab course.
+// This method allowed only to teachers and admins that belongs to test course.
 // Response: Error message or StatusOk:
-// URL values should contain ?id=<lab_id>
+// URL values should contain ?id=<test_id>
 // Response codes:
 // 200, 400, 401, 403, 404, 500.
-func NestedLabsDeleteHandler(w http.ResponseWriter, r *http.Request) {
+func NestedTestsDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -290,14 +293,14 @@ func NestedLabsDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	labId, err := strconv.Atoi(rawQuery.Get("id"))
+	testId, err := strconv.Atoi(rawQuery.Get("id"))
 	if err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUrlValueNotValid)
 		return
 	}
 
-	lab, err := models.GetNestedLabById(labId)
+	test, err := models.GetNestedTestById(testId)
 	if err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusNotFound, err)
@@ -305,14 +308,14 @@ func NestedLabsDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	belongs, err := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), lab.CourseId)
+		claims["user_id"].(int), test.CourseId)
 	if err != nil || !belongs {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
 	}
 
-	if err = models.DeleteNestedLabById(labId); err != nil {
+	if err = models.DeleteNestedTestById(testId); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusInternalServerError, e.ErrInternalServerError)
 		return

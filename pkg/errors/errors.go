@@ -72,16 +72,23 @@ var (
 		"course name not valid")
 	ErrUserNotBelongToCourse = errors.New(
 		"user not belong to that course")
-	// Nested info
+	// Nested infos
 	ErrNestedInfoNotFound = errors.New(
 		"nested info page not found")
 	ErrNestedInfosNotFound = errors.New(
 		"nested info pages not found")
-	// Nested lab
+	// Nested labs
 	ErrNestedLabNotFound = errors.New(
 		"nested lab page not found")
 	ErrNestedLabsNotFound = errors.New(
 		"nested lab pages not found")
+	// Nested tests
+	ErrNestedTestNotFound = errors.New(
+		"nested test page not found")
+	ErrNestedTestsNotFound = errors.New(
+		"nested test pages not found")
+	ErrTimeLimitTooShort = errors.New(
+		"time limit should be more than 5 minutes")
 	// Locations
 	ErrLocationNotFound = errors.New(
 		"location not found")

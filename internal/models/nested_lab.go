@@ -11,8 +11,8 @@ import (
 type NestedLab struct {
 	Id           int       `json:"id"`
 	CourseId     int       `json:"course_id"`
-	Opens        time.Time `json:"opens,omitempty"`  // RFC 3339
-	Closes       time.Time `json:"closes,omitempty"` // RFC 3339
+	Opens        time.Time `json:"opens"`  // UTC
+	Closes       time.Time `json:"closes"` // UTC
 	Topic        string    `json:"topic"`
 	Requirements string    `json:"requirements,omitempty"`
 	Example      string    `json:"example,omitempty"`
@@ -88,7 +88,7 @@ func (lab *NestedLab) Validate() error {
 	if lab.Id != 0 {
 		err := pgsql.DB.QueryRow(
 			`SELECT 1 FROM nested_labs WHERE id = $1`,
-			&lab.LocationId).Scan()
+			&lab.Id).Scan()
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return e.ErrNestedLabNotFound
@@ -155,8 +155,8 @@ func (lab *NestedLab) Update() error {
 	}
 
 	stmt, err := pgsql.DB.Prepare(
-		`UPDATE nested_labs 
-		SET course_id = $2, opens = $3, closes = $4, 
+		`UPDATE nested_labs SET 
+		course_id = $2, opens = $3, closes = $4, 
 		topic = $5, requirements = $6, example = $7, 
 		location_id = $8, attempts = $9
 		WHERE id = $1`)
