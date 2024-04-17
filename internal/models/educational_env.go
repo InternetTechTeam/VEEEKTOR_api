@@ -12,6 +12,7 @@ type EducationalEnv struct {
 	Name string `json:"name"`
 }
 
+// Errors: -
 func GetAllEducationalEnvs() ([]EducationalEnv, error) {
 	// First educational environment supposed to be for admins
 	stmt, err := pgsql.DB.Prepare(
@@ -38,6 +39,7 @@ func GetAllEducationalEnvs() ([]EducationalEnv, error) {
 	return envs, nil
 }
 
+// Errors: ErrEdEnvNotFound
 func GetEducationalEnvironmentById(envId int) (EducationalEnv, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, name FROM educational_envs WHERE id = $1`)

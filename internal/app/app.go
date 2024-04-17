@@ -46,8 +46,11 @@ func getMultiplexer() *http.ServeMux {
 
 	// Auth required
 	mux.HandleFunc(apiPrefix+"/auth/logout", service.Logout)
-	mux.HandleFunc(apiPrefix+"/courses", service.GetCouresesHandler)
 	mux.HandleFunc(apiPrefix+"/users", service.GetUsersHandler)
+	mux.HandleFunc(apiPrefix+"/courses", service.GetCouresesHandler)
+	mux.HandleFunc(apiPrefix+"/courses/infos", service.GetNestedInfosHandler)
+	mux.HandleFunc(apiPrefix+"/courses/labs", service.GetNestedLabsHandler)
+	mux.HandleFunc(apiPrefix+"/courses/tests", service.GetNestedTestsHandler)
 
 	return mux
 }

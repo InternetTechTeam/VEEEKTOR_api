@@ -47,3 +47,40 @@ CREATE TABLE user_courses (
     user_id   INT REFERENCES users(id) ON DELETE CASCADE,
     course_id INT REFERENCES courses(id) ON DELETE CASCADE
 );
+
+CREATE TABLE nested_infos (
+    id        SERIAL PRIMARY KEY,
+    course_id INT REFERENCES courses(id) ON DELETE CASCADE,
+    name      VARCHAR(512),
+    markdown  TEXT
+);
+
+CREATE TABLE locations (
+    id       SERIAL PRIMARY KEY,
+    location VARCHAR(512)
+);
+
+CREATE TABLE nested_tests (
+    id          SERIAL PRIMARY KEY, 
+    course_id   INT REFERENCES courses(id) ON DELETE CASCADE,
+    opens       TIMESTAMP WITH TIME ZONE NOT NULL,
+    closes      TIMESTAMP WITH TIME ZONE NOT NULL,
+    tasks_count INT NOT NULL,
+    topic       VARCHAR(512) NOT NULL,
+    location_id INT REFERENCES locations(id) ON DELETE SET NULL,
+    attempts    INT NOT NULL, 
+    password    VARCHAR(256),
+    time_limit  TIME NOT NULL
+);
+
+CREATE TABLE nested_labs (
+    id           SERIAL PRIMARY KEY,
+    course_id    INT REFERENCES courses(id) ON DELETE CASCADE,
+    opens        TIMESTAMP WITH TIME ZONE NOT NULL,
+    closes       TIMESTAMP WITH TIME ZONE NOT NULL,
+    topic        VARCHAR(512),
+    requirements VARCHAR(512),
+    example      VARCHAR(512),
+    location_id  INT REFERENCES locations(id) ON DELETE SET NULL,
+    attempts     INT NOT NULL
+);

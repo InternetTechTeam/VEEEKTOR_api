@@ -29,6 +29,7 @@ type CourseMultipleExportDTO struct {
 	} `json:"teacher"`
 }
 
+// Errors: ErrCoursesNotFound
 func GetCourseById(courseId int) (Course, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT name, term, teacher_id, markdown, dep_id 
@@ -45,12 +46,13 @@ func GetCourseById(courseId int) (Course, error) {
 		if err != sql.ErrNoRows {
 			log.Fatal(err)
 		}
-		return course, e.ErrCoursesNotFound
+		return course, e.ErrCourseNotFound
 	}
 
 	return course, nil
 }
 
+// Errors: ErrCoursesNotFound
 func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
 	selCourseIdStmt, err := pgsql.DB.Prepare(
 		`SELECT course_id from user_courses WHERE user_id=$1`)
@@ -74,6 +76,7 @@ func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
 	if rows, err = selCourseIdStmt.Query(&userId); err != nil {
 		log.Fatal(err)
 	}
+
 	var courses []CourseMultipleExportDTO
 	for rows.Next() {
 		var c CourseMultipleExportDTO
@@ -93,9 +96,15 @@ func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
 		courses = append(courses, c)
 	}
 
+	if len(courses) == 0 {
+		return courses, e.ErrCoursesNotFound
+	}
+
 	return courses, nil
 }
 
+// Errors: ErrCourseNotFound, ErrTermNotValid, ErrCourseNameNotValid
+// ErrTeacherNotFound, ErrDepNotFound
 func (c *Course) Validate() error {
 	if c.Id != 0 {
 		stmt, err := pgsql.DB.Prepare(
@@ -117,7 +126,7 @@ func (c *Course) Validate() error {
 	}
 
 	if len(c.Name) == 0 {
-		return e.ErrCourseNameInvalid
+		return e.ErrCourseNameNotValid
 	}
 
 	stmt, err := pgsql.DB.Prepare(
@@ -132,12 +141,14 @@ func (c *Course) Validate() error {
 	}
 
 	if _, err = GetDepartmentById(c.DepId); err != nil {
-		return err
+		return e.ErrDepNotFound
 	}
 
 	return nil
 }
 
+// Errors: ErrCourseNotFound, ErrTermNotValid, ErrCourseNameNotValid
+// ErrTeacherNotFound, ErrDepNotFound
 func (c *Course) Insert() error {
 	if err := c.Validate(); err != nil {
 		return err
@@ -164,6 +175,8 @@ func (c *Course) Insert() error {
 	return nil
 }
 
+// Errors: ErrCourseNotFound, ErrTermNotValid, ErrCourseNameNotValid
+// ErrTeacherNotFound, ErrDepNotFound
 func (c *Course) Update() error {
 	if err := c.Validate(); err != nil {
 		return err
@@ -191,6 +204,7 @@ func (c *Course) Update() error {
 }
 
 // Expected that link will be unique. Any error cause Fatal.
+// Errors: -
 func LinkUserWithCourse(userId, courseId int) error {
 	stmt, err := pgsql.DB.Prepare(
 		`INSERT INTO user_courses (user_id, course_id) VALUES ($1, $2)`)
@@ -203,4 +217,22 @@ func LinkUserWithCourse(userId, courseId int) error {
 	}
 
 	return nil
+}
+
+func CheckUserBelongsToCourse(userId, courseId int) (bool, error) {
+	stmt, err := pgsql.DB.Prepare(
+		`SELECT 1 FROM user_courses WHERE user_id = $1 AND course_id = $2`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	var belongs bool
+	if err = stmt.QueryRow(&userId, &courseId).Scan(&belongs); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		log.Fatal(err)
+	}
+
+	return true, nil
 }
