@@ -4,6 +4,7 @@ import (
 	"VEEEKTOR_api/pkg/database/pgsql"
 	e "VEEEKTOR_api/pkg/errors"
 	"database/sql"
+	"errors"
 	"log"
 )
 
@@ -16,7 +17,7 @@ type EducationalEnv struct {
 func GetAllEducationalEnvs() ([]EducationalEnv, error) {
 	// First educational environment supposed to be for admins
 	stmt, err := pgsql.DB.Prepare(
-		`SELECT id, name from educational_envs WHERE id != 1`)
+		`SELECT id, name from educational_envs WHERE id!=1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -42,7 +43,7 @@ func GetAllEducationalEnvs() ([]EducationalEnv, error) {
 // Errors: ErrEdEnvNotFound
 func GetEducationalEnvironmentById(envId int) (EducationalEnv, error) {
 	stmt, err := pgsql.DB.Prepare(
-		`SELECT id, name FROM educational_envs WHERE id = $1`)
+		`SELECT id, name FROM educational_envs WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -50,7 +51,7 @@ func GetEducationalEnvironmentById(envId int) (EducationalEnv, error) {
 	var env EducationalEnv
 	err = stmt.QueryRow(&envId).Scan(&env.Id, &env.Name)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return env, e.ErrEdEnvNotFound
 		}
 		log.Fatal(err)

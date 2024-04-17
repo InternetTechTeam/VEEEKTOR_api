@@ -4,6 +4,7 @@ import (
 	"VEEEKTOR_api/pkg/database/pgsql"
 	e "VEEEKTOR_api/pkg/errors"
 	"database/sql"
+	"errors"
 	"log"
 )
 
@@ -42,7 +43,7 @@ func GetAllDepartments() ([]Department, error) {
 // Errors: ErrDepNotFound
 func GetDepartmentById(depId int) (Department, error) {
 	stmt, err := pgsql.DB.Prepare(
-		`SELECT id, name, env_id FROM departments WHERE id = $1`)
+		`SELECT id, name, env_id FROM departments WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -50,7 +51,7 @@ func GetDepartmentById(depId int) (Department, error) {
 	var dep Department
 	err = stmt.QueryRow(&depId).Scan(&dep.Id, &dep.Name, &dep.EnvId)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return dep, e.ErrDepNotFound
 		}
 		log.Fatal(err)
@@ -62,7 +63,7 @@ func GetDepartmentById(depId int) (Department, error) {
 // Errors: -
 func GetAllDepartmentsByEnvironmentId(envId int) ([]Department, error) {
 	stmt, err := pgsql.DB.Prepare(
-		`SELECT id, name, env_id FROM departments WHERE env_id = $1`)
+		`SELECT id, name, env_id FROM departments WHERE env_id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}

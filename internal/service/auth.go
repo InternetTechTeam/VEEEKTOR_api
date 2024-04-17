@@ -11,20 +11,19 @@ import (
 
 // Token refresh for mobile and web clients.
 // Expected cookie / body (for mobile clients):
-// "refresh_token" : refresh token.
+// "refresh_token" : <refresh token>.
 // Response:
 // Error message or token pair:
-// "access_token"  : token for access to private pages, lifetime - one hour,
+// "access_token"  : token for access to private pages, lifetime - 15m;
 // "refresh_token" : token for refreshing access token, lifetime - 30 days.
 // Access token claims:
-// "exp" : token expiration date and time,
-// "user_id" : ID of the user who owns the token,
-// "role_id" : User role id. For actual roles see roles API.
+// "exp" : token expiration date and time;
+// "user_id" : user id;
+// "role_id" : user role id.
 // Cookie:
-// "refresh_token".
+// "refresh_token" : <rt>.
 // Response codes:
-// 200, 400, 401, 405, (500).
-// If token is expired or session does not exists - code: 401
+// 200, 400, 401, 405.
 func UpdateToken(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if r.Method != http.MethodPost {
@@ -48,13 +47,7 @@ func UpdateToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var exp bool
-	if exp, err = sess.IsExpired(); err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusInternalServerError, e.ErrInternalServerError)
-		return
-	}
-
-	if exp {
+	if exp, _ = sess.IsExpired(); exp {
 		e.ResponseWithError(
 			w, r, http.StatusUnauthorized, e.ErrTokenExpired)
 		return
@@ -63,16 +56,11 @@ func UpdateToken(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	if user, err = models.GetUserById(sess.UserId); err != nil {
 		e.ResponseWithError(
-			w, r, http.StatusInternalServerError, err)
+			w, r, http.StatusNotFound, e.ErrUserNotFound)
 		return
 	}
 
-	var tokens auth.TokenResponse
-	if tokens, err = auth.StoreSession(sess.UserId, user.Id); err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusInternalServerError, err)
-		return
-	}
+	tokens, _ := auth.StoreSession(sess.UserId, user.Id)
 
 	// Write jwt and refresh token pair
 	jsonBytes, _ := json.Marshal(tokens)
@@ -87,6 +75,15 @@ func UpdateToken(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
+// Log out logic.
+// Expected cookie / body (for mobile clients):
+// "refresh_token" : <refresh token>.
+// Response:
+// Error message or StatusOk.
+// Cookie:
+// "refresh_token" : <null>.
+// Response codes:
+// 200, 400, 405.
 func Logout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		e.ResponseWithError(
@@ -98,11 +95,11 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	var refreshToken string
 	if refreshToken, err = auth.GetRefreshTokenFromCookieOrBody(r); err != nil {
 		e.ResponseWithError(
-			w, r, http.StatusBadRequest, err)
+			w, r, http.StatusBadRequest, e.ErrTokenNotProvided)
 		return
 	}
 
-	auth.DeleteSessionByRT(refreshToken)
+	_ = auth.DeleteSessionByRT(refreshToken)
 
 	http.SetCookie(w, &http.Cookie{
 		Name:  "refresh_token",

@@ -4,6 +4,7 @@ import (
 	"VEEEKTOR_api/pkg/database/pgsql"
 	e "VEEEKTOR_api/pkg/errors"
 	"database/sql"
+	"errors"
 	"log"
 )
 
@@ -43,10 +44,10 @@ func GetCourseById(courseId int) (Course, error) {
 	if err := stmt.QueryRow(&courseId).Scan(
 		&course.Name, &course.Term, &course.TeacherId,
 		&course.Markdown, &course.DepId); err != nil {
-		if err != sql.ErrNoRows {
-			log.Fatal(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return course, e.ErrCourseNotFound
 		}
-		return course, e.ErrCourseNotFound
+		log.Fatal(err)
 	}
 
 	return course, nil
@@ -64,10 +65,10 @@ func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
 		`SELECT c.name, c.term, d_c.name, 
 		u.name, u.patronymic, u.surname, d_u.name 
 		FROM courses AS c 
-		JOIN users AS u ON c.teacher_id = u.id 
-		JOIN departments AS d_u ON d_u.id = u.dep_id 
-		JOIN departments AS d_c ON d_c.id = c.dep_id
-		WHERE c.id = $1`)
+		JOIN users AS u ON c.teacher_id=u.id 
+		JOIN departments AS d_u ON d_u.id=u.dep_id 
+		JOIN departments AS d_c ON d_c.id=c.dep_id
+		WHERE c.id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -88,10 +89,10 @@ func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
 		if err := selCourseStmt.QueryRow(&c.Id).Scan(
 			&c.Name, &c.Term, &c.Dep, &c.Teacher.Name,
 			&c.Teacher.Patronymic, &c.Teacher.Surname, &c.Teacher.Dep); err != nil {
-			if err != sql.ErrNoRows {
-				log.Fatal(err)
+			if errors.Is(err, sql.ErrNoRows) {
+				return courses, e.ErrCoursesNotFound
 			}
-			return courses, e.ErrCoursesNotFound
+			log.Fatal(err)
 		}
 		courses = append(courses, c)
 	}
@@ -106,15 +107,13 @@ func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
 // Errors: ErrCourseNotFound, ErrTermNotValid, ErrCourseNameNotValid
 // ErrTeacherNotFound, ErrDepNotFound
 func (c *Course) Validate() error {
+	var exists bool
 	if c.Id != 0 {
-		stmt, err := pgsql.DB.Prepare(
-			`SELECT 1 FROM courses WHERE id=$1`)
+		err := pgsql.DB.QueryRow(
+			`SELECT 1 FROM courses WHERE id=$1`,
+			&c.Id).Scan(&exists)
 		if err != nil {
-			log.Fatal(err)
-		}
-		var exist bool
-		if err = stmt.QueryRow(&c.Id).Scan(&exist); err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				return e.ErrCourseNotFound
 			}
 			log.Fatal(err)
@@ -129,19 +128,29 @@ func (c *Course) Validate() error {
 		return e.ErrCourseNameNotValid
 	}
 
-	stmt, err := pgsql.DB.Prepare(
-		`SELECT role_id from users WHERE id = $1`)
+	var roleId int
+	err := pgsql.DB.QueryRow(
+		`SELECT role_id from users WHERE id=$1`,
+		&c.TeacherId).Scan(&roleId)
 	if err != nil {
-		log.Fatal(e.ErrCantPrepareDbStmt)
+		if errors.Is(err, sql.ErrNoRows) {
+			return e.ErrTeacherNotFound
+		}
+		log.Fatal(err)
 	}
 
-	var roleId int
-	if stmt.QueryRow(&c.TeacherId).Scan(&roleId); roleId != 2 && roleId != 3 {
+	if roleId != 2 && roleId != 3 {
 		return e.ErrTeacherNotFound
 	}
 
-	if _, err = GetDepartmentById(c.DepId); err != nil {
-		return e.ErrDepNotFound
+	err = pgsql.DB.QueryRow(
+		`SELECT 1 FROM departments WHERE id=$1`,
+		&c.DepId).Scan(&exists)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return e.ErrDepNotFound
+		}
+		log.Fatal(err)
 	}
 
 	return nil
@@ -178,12 +187,12 @@ func (c *Course) Insert() error {
 // Errors: ErrCourseNotFound, ErrTermNotValid, ErrCourseNameNotValid
 // ErrTeacherNotFound, ErrDepNotFound
 func (c *Course) Update() error {
-	if err := c.Validate(); err != nil {
-		return err
-	}
-
 	if c.Id == 0 {
 		return e.ErrCourseIdNull
+	}
+
+	if err := c.Validate(); err != nil {
+		return err
 	}
 
 	stmt, err := pgsql.DB.Prepare(
@@ -203,7 +212,7 @@ func (c *Course) Update() error {
 	return nil
 }
 
-// Expected that link will be unique. Any error cause Fatal.
+// Expected that link will be unique.
 // Errors: -
 func LinkUserWithCourse(userId, courseId int) error {
 	stmt, err := pgsql.DB.Prepare(
@@ -219,16 +228,17 @@ func LinkUserWithCourse(userId, courseId int) error {
 	return nil
 }
 
+// Errors: -
 func CheckUserBelongsToCourse(userId, courseId int) (bool, error) {
 	stmt, err := pgsql.DB.Prepare(
-		`SELECT 1 FROM user_courses WHERE user_id = $1 AND course_id = $2`)
+		`SELECT 1 FROM user_courses WHERE user_id=$1 AND course_id=$2`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
 
 	var belongs bool
 	if err = stmt.QueryRow(&userId, &courseId).Scan(&belongs); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
 		log.Fatal(err)

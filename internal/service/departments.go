@@ -18,10 +18,8 @@ func GetDepartmentsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Get all departments logic. If url
-// contains id, response will contain department by id.
-// If url contains env_id, response will contain departments
-// by environment id.
+// Departments GET logic.
+// Departments can be get by id or env_id in url values;
 // Response: Error message or department(s):
 // id : id of department;
 // name : name of department;

@@ -29,6 +29,7 @@ type TokenResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+// Errors: -
 func GenerateRefreshToken() (string, error) {
 	b := make([]byte, 32)
 
@@ -36,12 +37,13 @@ func GenerateRefreshToken() (string, error) {
 	r := rand.New(s)
 
 	if _, err := r.Read(b); err != nil {
-		return "", err
+		log.Fatal(err)
 	}
 
 	return fmt.Sprintf("%x", b), nil
 }
 
+// Errors: -
 func GenerateAccessToken(user_id int, role_id int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.MapClaims{
 		"exp":     time.Now().Add(AccessTokenLifeTime).Unix(),
@@ -51,7 +53,7 @@ func GenerateAccessToken(user_id int, role_id int) (string, error) {
 
 	tokenString, err := token.SignedString(AccessKey)
 	if err != nil {
-		return "", err
+		log.Fatal(err)
 	}
 
 	return tokenString, nil
@@ -61,6 +63,7 @@ type RefreshToken struct {
 	Token string `json:"refresh_token"`
 }
 
+// Errors: ErrTokenNotProvided
 func GetRefreshTokenFromCookieOrBody(r *http.Request) (string, error) {
 	// Try to get token from cookie
 	var err error
@@ -68,7 +71,7 @@ func GetRefreshTokenFromCookieOrBody(r *http.Request) (string, error) {
 	var cookie *http.Cookie
 	if cookie, err = r.Cookie("refresh_token"); err != nil &&
 		!errors.Is(err, http.ErrNoCookie) {
-		return "", err
+		log.Fatal(err)
 	}
 	if !errors.Is(err, http.ErrNoCookie) {
 		rt.Token = cookie.Value
@@ -90,6 +93,7 @@ func GetRefreshTokenFromCookieOrBody(r *http.Request) (string, error) {
 	return rt.Token, nil
 }
 
+// Errors: ErrTokenNotProvided, ErrTokenNotValid
 func GetAccessTokenFromHeader(r *http.Request) (string, error) {
 	header := r.Header.Get("Authorization")
 	if header == "" {
@@ -108,6 +112,7 @@ func GetAccessTokenFromHeader(r *http.Request) (string, error) {
 }
 
 // Also checks authorization
+// Errors: ErrTokenNotValid, ErrTokenExpired
 func GetTokenClaims(accessToken string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(accessToken,
 		func(token *jwt.Token) (i interface{}, err error) {
@@ -134,6 +139,7 @@ func GetTokenClaims(accessToken string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
+// Errors: -
 func IsRefreshTokenExpired(refreshToken string) (bool, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT expires_at FROM sessions WHERE refresh_token=$1`)
@@ -143,8 +149,7 @@ func IsRefreshTokenExpired(refreshToken string) (bool, error) {
 
 	var expiresAt int64
 	if err := stmt.QueryRow(&refreshToken).Scan(&expiresAt); err != nil {
-		log.Print(err)
-		return true, err
+		log.Fatal(err)
 	}
 
 	if expiresAt > time.Now().Unix() {
@@ -153,35 +158,3 @@ func IsRefreshTokenExpired(refreshToken string) (bool, error) {
 
 	return true, nil
 }
-
-// func GetUserIdFromRequest(r *http.Request) (int, error) {
-// 	accessToken, err := GetAccessTokenFromHeader(r)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-
-// 	claims, err := GetTokenClaims(accessToken)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-
-// 	// Cast json number to golang int
-// 	userId := int(claims["user_id"].(float64))
-
-// 	return userId, nil
-// }
-
-// func GetUserRoleFromRequest(r *http.Request) (int, error) {
-// 	accessToken, err := GetAccessTokenFromHeader(r)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-
-// 	claims, err := GetTokenClaims(accessToken)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-
-// 	roleId := int(claims["role_id"].(float64))
-// 	return roleId, nil
-// }

@@ -32,7 +32,7 @@ var (
 	ErrUserNotFound = errors.New(
 		"user not found")
 	ErrUserExists = errors.New(
-		"user with this login already exists")
+		"user with this email already exists")
 	ErrAccessDenied = errors.New(
 		"permission denied")
 	// Sessions

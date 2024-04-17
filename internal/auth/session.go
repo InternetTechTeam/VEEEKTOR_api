@@ -2,7 +2,6 @@ package auth
 
 import (
 	"database/sql"
-	"errors"
 	"log"
 	"time"
 
@@ -17,7 +16,8 @@ type Session struct {
 	ExpiresAt    time.Time `json:"expires_at"`
 }
 
-// User id and role_id must be valid
+// User id and role_id must be valid.
+// Errors: -
 func StoreSession(user_id int, role_id int) (TokenResponse, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`INSERT INTO sessions (user_id, refresh_token, expires_at)
@@ -35,14 +35,14 @@ func StoreSession(user_id int, role_id int) (TokenResponse, error) {
 	if _, err := stmt.Exec(
 		&user_id, &resp.RefreshToken,
 		time.Now().Add(RefreshTokenLifeTime)); err != nil {
-		log.Print(err)
-		return TokenResponse{}, err
+		log.Fatal(err)
 	}
 
 	return resp, nil
 }
 
-func DeleteSessionByRT(refreshToken string) {
+// Errors: -
+func DeleteSessionByRT(refreshToken string) error {
 	stmt, err := pgsql.DB.Prepare(
 		`DELETE FROM sessions WHERE refresh_token=$1`)
 	if err != nil {
@@ -52,8 +52,11 @@ func DeleteSessionByRT(refreshToken string) {
 	if _, err := stmt.Exec(&refreshToken); err != nil {
 		log.Fatal(err)
 	}
+
+	return nil
 }
 
+// Errors: -
 func CheckSessionsCount(user_id int) {
 	getStmt, err := pgsql.DB.Prepare(
 		`SELECT COUNT(*) FROM sessions WHERE user_id=$1`)
@@ -61,7 +64,7 @@ func CheckSessionsCount(user_id int) {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
 	var count int
-	if getStmt.QueryRow(&user_id).Scan(&count); count <= 5 {
+	if getStmt.QueryRow(&user_id).Scan(&count); count < 5 {
 		return
 	}
 
@@ -76,6 +79,7 @@ func CheckSessionsCount(user_id int) {
 	}
 }
 
+// Errors: ErrSessionNotExist
 func GetSessionByRefreshToken(refreshToken string) (Session, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, user_id, expires_at FROM 
@@ -87,31 +91,31 @@ func GetSessionByRefreshToken(refreshToken string) (Session, error) {
 	var sess Session
 	if err := stmt.QueryRow(&refreshToken).Scan(
 		&sess.Id, &sess.UserId, &sess.ExpiresAt); err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			return Session{}, err
+		if err == sql.ErrNoRows {
+			return Session{}, e.ErrSessionNotExist
 		}
-		return Session{}, e.ErrSessionNotExist
+		log.Fatal(err)
 	}
 	return sess, nil
 }
 
+// Errors: -
 func (sess *Session) IsExpired() (bool, error) {
 	if sess.ExpiresAt.Unix() <= time.Now().Unix() {
-		stmt, err := pgsql.DB.Prepare(
-			`DELETE FROM sessions WHERE refresh_token=$1`)
+		_, err := pgsql.DB.Exec(
+			`DELETE FROM sessions WHERE refresh_token=$1`,
+			&sess.RefreshToken)
 		if err != nil {
-			log.Fatal(e.ErrCantPrepareDbStmt)
+			log.Fatal(err)
 		}
-
-		if _, err = stmt.Exec(sess.RefreshToken); err != nil {
-			return true, err
-		}
+		return true, nil
 	}
 
 	return false, nil
 }
 
 // Removes old session
+// Errors: -
 func ClearSessionsByUserId(user_id int) error {
 	stmt, err := pgsql.DB.Prepare(
 		`DELETE FROM sessions WHERE user_id=$1`)
@@ -120,8 +124,7 @@ func ClearSessionsByUserId(user_id int) error {
 	}
 
 	if _, err := stmt.Exec(user_id); err != nil {
-		log.Print(err)
-		return err
+		log.Fatal(err)
 	}
 
 	return nil

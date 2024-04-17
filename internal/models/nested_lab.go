@@ -4,6 +4,7 @@ import (
 	"VEEEKTOR_api/pkg/database/pgsql"
 	e "VEEEKTOR_api/pkg/errors"
 	"database/sql"
+	"errors"
 	"log"
 	"time"
 )
@@ -20,12 +21,12 @@ type NestedLab struct {
 	Attempts     int       `json:"attempts,omitempty"`
 }
 
-// Errors: ErrLabNotFound
+// Errors: ErrNestedLabNotFound
 func GetNestedLabById(labId int) (NestedLab, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, course_id, opens, closes, topic, 
 		requirements, example, location_id, attempts 
-		FROM nested_labs WHERE id = $1`)
+		FROM nested_labs WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -35,7 +36,7 @@ func GetNestedLabById(labId int) (NestedLab, error) {
 		&lab.Id, &lab.CourseId, &lab.Opens,
 		&lab.Closes, &lab.Topic, &lab.Requirements,
 		&lab.Example, &lab.LocationId, &lab.Attempts); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return lab, e.ErrNestedLabNotFound
 		}
 		log.Fatal(err)
@@ -48,7 +49,7 @@ func GetNestedLabById(labId int) (NestedLab, error) {
 func GetNestedLabsByCourseId(courseId int) ([]NestedLab, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, course_id, opens, closes, topic 
-		FROM nested_labs WHERE course_id = $1`)
+		FROM nested_labs WHERE course_id=$1`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,10 +89,10 @@ func (lab *NestedLab) Validate() error {
 
 	if lab.Id != 0 {
 		err := pgsql.DB.QueryRow(
-			`SELECT 1 FROM nested_labs WHERE id = $1`,
+			`SELECT 1 FROM nested_labs WHERE id=$1`,
 			&lab.Id).Scan(&exists)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				return e.ErrNestedLabNotFound
 			}
 			log.Fatal(err)
@@ -99,20 +100,20 @@ func (lab *NestedLab) Validate() error {
 	}
 
 	err := pgsql.DB.QueryRow(
-		`SELECT 1 FROM locations WHERE id = $1`,
+		`SELECT 1 FROM locations WHERE id=$1`,
 		&lab.LocationId).Scan(&exists)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return e.ErrLocationNotFound
 		}
 		log.Fatal(err)
 	}
 
 	err = pgsql.DB.QueryRow(
-		`SELECT 1 FROM courses WHERE id = $1`,
+		`SELECT 1 FROM courses WHERE id=$1`,
 		&lab.CourseId).Scan(&exists)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return e.ErrCourseNotFound
 		}
 		log.Fatal(err)
@@ -151,16 +152,20 @@ func (lab *NestedLab) Insert() error {
 // Errors: ErrMissingFields, ErrNestedLabNotFound,
 // ErrLocationNotFound, ErrCourseNotFound
 func (lab *NestedLab) Update() error {
+	if lab.Id == 0 {
+		return e.ErrMissingFields
+	}
+
 	if err := lab.Validate(); err != nil {
 		return err
 	}
 
 	stmt, err := pgsql.DB.Prepare(
 		`UPDATE nested_labs SET 
-		course_id = $2, opens = $3, closes = $4, 
-		topic = $5, requirements = $6, example = $7, 
-		location_id = $8, attempts = $9
-		WHERE id = $1`)
+		course_id=$2, opens=$3, closes=$4, 
+		topic=$5, requirements=$6, example=$7, 
+		location_id=$8, attempts=$9
+		WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -176,9 +181,10 @@ func (lab *NestedLab) Update() error {
 	return nil
 }
 
+// Errors: -
 func DeleteNestedLabById(labId int) error {
 	stmt, err := pgsql.DB.Prepare(
-		`DELETE FROM nested_labs WHERE id = $1`)
+		`DELETE FROM nested_labs WHERE id=$1`)
 	if err != nil {
 		log.Fatal(err)
 	}

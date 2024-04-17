@@ -23,17 +23,22 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Get all courses without markdown by user id logic. If url
-// contains id, response body will contain markdown.
+// Courses GET logic.
+// Courses can be get by id in url values or by user id in token claims;
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
-// Response: Error message or courses by user id (course id):
+// Response: Error message or course(s) by course id (user id):
 // id : id of course;
 // name : name of course;
 // term : term of course;
-// teacher_id : id of teacher (user);
-// markdown : markdown text of course;
-// dep_id : id of course department.
+// teacher_id : id of teacher (user) (get by course id only);
+// markdown : markdown text of course (get by course id only);
+// dep_id : id of course department (get by course id only);
+// teacher.name : teacher name (get by user id only);
+// teacher.patronymic : teacher patronymic (get by user id only);
+// teacher.surname : teacher surname (get by user id only);
+// teacher.dep : teacher department (get by user id only);
+// dep : course department (get by user id only);
 // Response codes:
 // 200, 400, 401, 404.
 func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +50,7 @@ func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := auth.GetTokenClaims(accessToken)
 	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
+		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
 		return
 	} else if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -66,7 +71,7 @@ func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
 		course, err := models.GetCourseById(courseId)
 		if err != nil {
 			e.ResponseWithError(
-				w, r, http.StatusNotFound, err)
+				w, r, http.StatusNotFound, e.ErrCourseNotFound)
 			return
 		}
 
@@ -75,7 +80,7 @@ func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		courses, err := models.GetAllCoursesByUserId(claims["user_id"].(int))
 		if err != nil {
-			e.ResponseWithError(w, r, http.StatusNotFound, err)
+			e.ResponseWithError(w, r, http.StatusNotFound, e.ErrCoursesNotFound)
 			return
 		}
 
@@ -85,11 +90,10 @@ func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-// Course insert logic.
+// Courses INSERT logic.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
 // Course creation allowed only to teachers and admins.
-// Token claims should contain role_id = 2/3.
 // Response: Error message or StatusOk:
 // Expected body:
 // name : name of course;
@@ -108,7 +112,7 @@ func CoursesCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := auth.GetTokenClaims(accessToken)
 	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
+		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
 		return
 	} else if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -141,11 +145,10 @@ func CoursesCreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Course update logic.
+// Courses PUT logic.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
 // Course update allowed only to teachers and admins.
-// Token claims should contain role_id = 2/3.
 // Response: Error message or StatusOk:
 // Expected body:
 // id : id of course;
@@ -165,7 +168,7 @@ func CoursesUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := auth.GetTokenClaims(accessToken)
 	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
+		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
 		return
 	} else if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)

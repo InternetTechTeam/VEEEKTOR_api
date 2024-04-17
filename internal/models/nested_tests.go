@@ -4,6 +4,7 @@ import (
 	"VEEEKTOR_api/pkg/database/pgsql"
 	e "VEEEKTOR_api/pkg/errors"
 	"database/sql"
+	"errors"
 	"log"
 	"strconv"
 	"strings"
@@ -23,13 +24,13 @@ type NestedTest struct {
 	TimeLimit  string    `json:"time_limit,omitempty"`
 }
 
-// Errors: ErrTestNotFound
+// Errors: ErrNestedTestNotFound
 func GetNestedTestById(testId int) (NestedTest, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, course_id, opens, closes, 
 		tasks_count, topic, location_id, 
 		attempts, password, time_limit 
-		FROM nested_tests WHERE id = $1`)
+		FROM nested_tests WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -40,7 +41,7 @@ func GetNestedTestById(testId int) (NestedTest, error) {
 		&test.Closes, &test.TasksCount, &test.Topic,
 		&test.LocationId, &test.Attempts, &test.Password,
 		&test.TimeLimit); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return test, e.ErrNestedTestNotFound
 		}
 		log.Fatal(err)
@@ -53,7 +54,7 @@ func GetNestedTestById(testId int) (NestedTest, error) {
 func GetNestedTestsByCourseId(courseId int) ([]NestedTest, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, course_id, opens, closes, topic 
-		FROM nested_tests WHERE course_id = $1`)
+		FROM nested_tests WHERE course_id=$1`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -108,10 +109,10 @@ func (test *NestedTest) Validate() error {
 
 	if test.Id != 0 {
 		err := pgsql.DB.QueryRow(
-			`SELECT 1 FROM nested_tests WHERE id = $1`,
+			`SELECT 1 FROM nested_tests WHERE id=$1`,
 			&test.Id).Scan(&exists)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				return e.ErrNestedTestNotFound
 			}
 			log.Fatal(err)
@@ -119,20 +120,20 @@ func (test *NestedTest) Validate() error {
 	}
 
 	err := pgsql.DB.QueryRow(
-		`SELECT 1 FROM locations WHERE id = $1`,
+		`SELECT 1 FROM locations WHERE id=$1`,
 		&test.LocationId).Scan(&exists)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return e.ErrLocationNotFound
 		}
 		log.Fatal(err)
 	}
 
 	err = pgsql.DB.QueryRow(
-		`SELECT 1 FROM courses WHERE id = $1`,
+		`SELECT 1 FROM courses WHERE id=$1`,
 		&test.CourseId).Scan(&exists)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return e.ErrCourseNotFound
 		}
 		log.Fatal(err)
@@ -172,16 +173,20 @@ func (test *NestedTest) Insert() error {
 // Errors: ErrMissingFields, ErrTimeLimitTooShort,
 // ErrNestedTestNotFound, ErrLocationNotFound, ErrCourseNotFound
 func (test *NestedTest) Update() error {
+	if test.Id == 0 {
+		return e.ErrMissingFields
+	}
+
 	if err := test.Validate(); err != nil {
 		return err
 	}
 
 	stmt, err := pgsql.DB.Prepare(
 		`UPDATE nested_tests SET 
-		course_id = $2, opens = $3, closes = $4, 
-		tasks_count = $5, topic = $6, location_id = $7, 
-		attempts = $8, password = $9, time_limit = $10
-		WHERE id = $1`)
+		course_id=$2, opens=$3, closes=$4, 
+		tasks_count=$5, topic=$6, location_id=$7, 
+		attempts=$8, password=$9, time_limit=$10
+		WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -198,9 +203,10 @@ func (test *NestedTest) Update() error {
 	return nil
 }
 
+// Errors: -
 func DeleteNestedTestById(testId int) error {
 	stmt, err := pgsql.DB.Prepare(
-		`DELETE FROM nested_tests WHERE id = $1`)
+		`DELETE FROM nested_tests WHERE id=$1`)
 	if err != nil {
 		log.Fatal(err)
 	}

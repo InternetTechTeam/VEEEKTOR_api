@@ -26,15 +26,14 @@ func GetNestedInfosHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Nested infos GET logic.
-// If url contains info id, response body will contain all fields.
-// If url contains course_id, response will contain array of info pages.
+// Url values should contain ?id=<info_id> or ?id=<course_id>.
 // Info pages can only be accessable for users that belongs to info page course.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
 // Response: Error message or info pages by course id (info id):
 // id : id of info page;
 // course_id : id of info page course;
-// markdown (optional) : markdown of info page if id is in url values;
+// markdown : markdown of info page (only for get by id);
 // Response codes:
 // 200, 400, 401, 403, 404.
 func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +45,7 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := auth.GetTokenClaims(accessToken)
 	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
+		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
 		return
 	} else if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -67,13 +66,12 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
 		info, err := models.GetNestedInfoById(infoId)
 		if err != nil {
 			e.ResponseWithError(
-				w, r, http.StatusNotFound, err)
+				w, r, http.StatusNotFound, e.ErrNestedInfoNotFound)
 			return
 		}
 
-		belongs, err := models.CheckUserBelongsToCourse(
-			claims["user_id"].(int), info.CourseId)
-		if err != nil || !belongs {
+		if belongs, _ := models.CheckUserBelongsToCourse(
+			claims["user_id"].(int), info.CourseId); !belongs {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
@@ -89,9 +87,8 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		belongs, err := models.CheckUserBelongsToCourse(
-			claims["user_id"].(int), courseId)
-		if err != nil || !belongs {
+		if belongs, _ := models.CheckUserBelongsToCourse(
+			claims["user_id"].(int), courseId); !belongs {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
@@ -100,7 +97,7 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
 		info, err := models.GetNestedInfosByCourseId(courseId)
 		if err != nil {
 			e.ResponseWithError(
-				w, r, http.StatusNotFound, err)
+				w, r, http.StatusNotFound, e.ErrNestedInfosNotFound)
 			return
 		}
 
@@ -115,10 +112,10 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-// Course info POST logic.
+// Course infos POST logic.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
-// This method allowed only to teachers and admins.
+// This method allowed only to teachers, who belongs to course or admins.
 // Response: Error message or StatusOk:
 // Expected body:
 // course_id : id of course;
@@ -134,7 +131,7 @@ func NestedInfosCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := auth.GetTokenClaims(accessToken)
 	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
+		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
 		return
 	} else if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -158,9 +155,8 @@ func NestedInfosCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	belongs, err := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), info.CourseId)
-	if err != nil || !belongs {
+	if belongs, _ := models.CheckUserBelongsToCourse(
+		claims["user_id"].(int), info.CourseId); !belongs {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
@@ -175,15 +171,16 @@ func NestedInfosCreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Nested info page PUT logic.
+// Nested infos PUT logic.
 // Expected header:
 // Authorization : Bearer <Valid Access Token>
-// This method allowed only to teachers and admins.
+// This method allowed only to teachers, who belongs to course or admins.
 // Response: Error message or StatusOk:
 // Expected body:
-
-// markdown : markdown text of course;
-// dep_id : id of course department.
+// id : nested info page id;
+// course_id : nested info page course id;
+// name : nested info page name;
+// markdown : markdown of nested info page.
 // Response codes:
 // 200, 400, 401, 403.
 func NestedInfosUpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -195,7 +192,7 @@ func NestedInfosUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := auth.GetTokenClaims(accessToken)
 	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
+		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
 		return
 	} else if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -219,9 +216,8 @@ func NestedInfosUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	belongs, err := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), info.CourseId)
-	if err != nil || !belongs {
+	if belongs, _ := models.CheckUserBelongsToCourse(
+		claims["user_id"].(int), info.CourseId); !belongs {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
@@ -236,12 +232,12 @@ func NestedInfosUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Nested info page DELETE logic.
+// Nested infos DELETE logic.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
-// This method allowed only to teachers and admins that belongs to info course.
+// Authorization : Bearer <Valid Access Token>.
+// This method allowed only to admins and teachers, who belongs to course.
 // Response: Error message or StatusOk:
-// URL values should contain ?id=<id_of_info_page>
+// URL values should contain ?id=<id_of_info_page>.
 // Response codes:
 // 200, 400, 401, 403, 404, 500.
 func NestedInfosDeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -253,7 +249,7 @@ func NestedInfosDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := auth.GetTokenClaims(accessToken)
 	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, err)
+		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
 		return
 	} else if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
@@ -282,21 +278,18 @@ func NestedInfosDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	info, err := models.GetNestedInfoById(infoId)
 	if err != nil {
 		e.ResponseWithError(
-			w, r, http.StatusNotFound, err)
+			w, r, http.StatusNotFound, e.ErrNestedInfoNotFound)
 		return
 	}
 
-	belongs, err := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), info.CourseId)
-	if err != nil || !belongs {
+	if belongs, _ := models.CheckUserBelongsToCourse(
+		claims["user_id"].(int), info.CourseId); !belongs {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
 	}
 
-	if err = models.DeleteNestedInfoById(infoId); err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusInternalServerError, e.ErrInternalServerError)
-		return
-	}
+	_ = models.DeleteNestedInfoById(infoId)
+
+	w.WriteHeader(http.StatusOK)
 }

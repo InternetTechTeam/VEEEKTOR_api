@@ -18,8 +18,8 @@ func GetEducatinalEnvironmentsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Get all educational environments logic. If url
-// contains id, response will contain educational env by id.
+// Educational environments GET logic.
+// Environments can be get by id in url values or all together.
 // Response: Error message or educational environment(s):
 // id : id of educational env;
 // name : name of educational env.

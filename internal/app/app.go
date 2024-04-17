@@ -35,18 +35,22 @@ func Start() {
 func getMultiplexer() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	// Auth free
+	// Auth
+	mux.HandleFunc(apiPrefix+"/auth/refresh", service.UpdateToken)
+	mux.HandleFunc(apiPrefix+"/auth/logout", service.Logout)
+
+	// Users
+	mux.HandleFunc(apiPrefix+"/users", service.GetUsersHandler)
 	mux.HandleFunc(apiPrefix+"/users/signin", service.UsersSignInHandler)
 	mux.HandleFunc(apiPrefix+"/users/signup", service.UsersSignUpHandler)
+
+	// Educational envs
 	mux.HandleFunc(apiPrefix+"/educational_envs", service.GetEducatinalEnvironmentsHandler)
+
+	// Departments
 	mux.HandleFunc(apiPrefix+"/departments", service.GetDepartmentsHandler)
 
-	// Refresh auth
-	mux.HandleFunc(apiPrefix+"/auth/refresh", service.UpdateToken)
-
-	// Auth required
-	mux.HandleFunc(apiPrefix+"/auth/logout", service.Logout)
-	mux.HandleFunc(apiPrefix+"/users", service.GetUsersHandler)
+	// Courses
 	mux.HandleFunc(apiPrefix+"/courses", service.GetCouresesHandler)
 	mux.HandleFunc(apiPrefix+"/courses/infos", service.GetNestedInfosHandler)
 	mux.HandleFunc(apiPrefix+"/courses/labs", service.GetNestedLabsHandler)

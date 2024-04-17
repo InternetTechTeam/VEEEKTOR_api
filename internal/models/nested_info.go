@@ -4,6 +4,7 @@ import (
 	"VEEEKTOR_api/pkg/database/pgsql"
 	e "VEEEKTOR_api/pkg/errors"
 	"database/sql"
+	"errors"
 	"log"
 )
 
@@ -18,7 +19,7 @@ type NestedInfo struct {
 func GetNestedInfoById(infoId int) (NestedInfo, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, course_id, name, markdown 
-		FROM nested_infos WHERE id = $1`)
+		FROM nested_infos WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -26,10 +27,10 @@ func GetNestedInfoById(infoId int) (NestedInfo, error) {
 	var info NestedInfo
 	if err = stmt.QueryRow(&infoId).Scan(&info.Id,
 		&info.CourseId, &info.Name, &info.Markdown); err != nil {
-		if err != sql.ErrNoRows {
-			log.Fatal(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return info, e.ErrNestedInfoNotFound
 		}
-		return info, e.ErrNestedInfoNotFound
+		log.Fatal(err)
 	}
 
 	return info, nil
@@ -39,7 +40,7 @@ func GetNestedInfoById(infoId int) (NestedInfo, error) {
 func GetNestedInfosByCourseId(courseId int) ([]NestedInfo, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`SELECT id, course_id, name
-		FROM nested_infos WHERE course_id = $1`)
+		FROM nested_infos WHERE course_id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -75,10 +76,10 @@ func (info *NestedInfo) Validate() error {
 
 	if info.Id != 0 {
 		err := pgsql.DB.QueryRow(
-			`SELECT 1 FROM nested_info WHERE id = $1`,
+			`SELECT 1 FROM nested_info WHERE id=$1`,
 			&info.Id).Scan(&exists)
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				return e.ErrNestedLabNotFound
 			}
 			log.Fatal(err)
@@ -86,10 +87,10 @@ func (info *NestedInfo) Validate() error {
 	}
 
 	err := pgsql.DB.QueryRow(
-		`SELECT 1 FROM courses WHERE id = $1`,
+		`SELECT 1 FROM courses WHERE id=$1`,
 		&info.CourseId).Scan(&exists)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return e.ErrCourseNotFound
 		}
 		log.Fatal(err)
@@ -131,8 +132,8 @@ func (info *NestedInfo) Update() error {
 
 	stmt, err := pgsql.DB.Prepare(
 		`UPDATE nested_infos 
-		SET course_id = $2, name = $3, markdown = $4
-		WHERE id = $1`)
+		SET course_id=$2, name=$3, markdown=$4
+		WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -145,9 +146,10 @@ func (info *NestedInfo) Update() error {
 	return nil
 }
 
+// Errors: -
 func DeleteNestedInfoById(infoId int) error {
 	stmt, err := pgsql.DB.Prepare(
-		`DELETE FROM nested_infos WHERE id = $1`)
+		`DELETE FROM nested_infos WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}

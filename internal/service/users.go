@@ -2,15 +2,11 @@ package service
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"VEEEKTOR_api/internal/auth"
 	"VEEEKTOR_api/internal/models"
 	e "VEEEKTOR_api/pkg/errors"
-
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
@@ -64,24 +60,23 @@ func UsersGetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-// Authorization, authentication logic.
+// Users authorization, authentication logic.
 // Expected body:
-// "email" 	  : user email (4-64 symbols),
-// "password" : user password (8-50 symbols).
+// email : user email (4-64 symbols);
+// password : user password (8-50 symbols).
 // Response:
 // Error message or token pair:
-// "access_token"  : token for access to private pages, lifetime - one hour,
-// "refresh_token" : token for refreshing access token, lifetime - 30 days.
+// access_token  : token for access to private pages, lifetime - 15m;
+// refresh_token : token for refreshing access token, lifetime - 30 days.
 // Access token claims:
-// "exp" : token expiration date and time in UNIX format,
-// "user_id" : ID of the user who owns the token,
-// "role_id" : User role id. For actual roles see roles API.
+// exp : token expiration date and time in UNIX format;
+// user_id : user id;
+// role_id : User role id.
 // Cookie:
-// "refresh_token".
+// refresh_token : <rt>.
 // Response codes:
-// 200, 400, 404, 405, (500).
+// 200, 400, 404, 405.
 func UsersSignInHandler(w http.ResponseWriter, r *http.Request) {
-	var err error
 	if r.Method != http.MethodPost {
 		e.ResponseWithError(
 			w, r, http.StatusMethodNotAllowed, e.ErrOnlyPostAllowed)
@@ -91,6 +86,7 @@ func UsersSignInHandler(w http.ResponseWriter, r *http.Request) {
 	bytes := make([]byte, r.ContentLength)
 	r.Body.Read(bytes)
 
+	var err error
 	var inp models.SignInInput
 	if err = json.Unmarshal(bytes, &inp); err != nil {
 		e.ResponseWithError(
@@ -111,12 +107,7 @@ func UsersSignInHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var tokens auth.TokenResponse
-	if tokens, err = auth.StoreSession(user.Id, user.RoleId); err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusInternalServerError, err)
-		return
-	}
+	tokens, _ := auth.StoreSession(user.Id, user.RoleId)
 
 	// Write jwt and refresh token pair
 	jsonBytes, _ := json.Marshal(tokens)
@@ -131,18 +122,18 @@ func UsersSignInHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-// User creation logic.
+// Users sign up logic.
 // Expected body:
-// "email" 	  : user email (4-64 symbols),
-// "password" : user password (8-50 symbols),
-// "name" : user name (2-30 symbols),
-// "patronymic" : user patronymic (2-30 symbols),
-// "surname" : user surname (2-30 symbols),
-// "dep_id" : department id (For actuall id's check departments api);
+// email : user email (4-64 symbols);
+// password : user password (8-50 symbols);
+// name : user name (2-30 symbols);
+// patronymic : user patronymic (2-30 symbols);
+// surname : user surname (2-30 symbols);
+// dep_id : department id.
 // Response:
-// Error message or null.
+// Error message or StatusOk.
 // Response codes:
-// 200, 400, 405, 409, (500).
+// 200, 400, 405, 409.
 func UsersSignUpHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if r.Method != http.MethodPost {
@@ -182,19 +173,7 @@ func UsersSignUpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := dto.Insert(); err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			if pgErr.Code == pgerrcode.UniqueViolation {
-				e.ResponseWithError(
-					w, r, http.StatusConflict, e.ErrUserExists)
-				return
-			}
-		} else {
-			e.ResponseWithError(
-				w, r, http.StatusInternalServerError,
-				e.ErrInternalServerError)
-			return
-		}
+		e.ResponseWithError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
