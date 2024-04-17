@@ -2,6 +2,7 @@ package auth
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"time"
 
@@ -18,7 +19,7 @@ type Session struct {
 
 // User id and role_id must be valid.
 // Errors: -
-func StoreSession(user_id int, role_id int) (TokenResponse, error) {
+func StoreSession(user_id, role_id int) (TokenResponse, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`INSERT INTO sessions (user_id, refresh_token, expires_at)
 		VALUES ($1, $2, $3)`)
@@ -34,6 +35,36 @@ func StoreSession(user_id int, role_id int) (TokenResponse, error) {
 
 	if _, err := stmt.Exec(
 		&user_id, &resp.RefreshToken,
+		time.Now().Add(RefreshTokenLifeTime)); err != nil {
+		log.Fatal(err)
+	}
+
+	return resp, nil
+}
+
+func UpdateSession(sess Session) (TokenResponse, error) {
+	stmt, err := pgsql.DB.Prepare(
+		`UPDATE sessions SET 
+		refresh_token=$2, expires_at=$3
+		WHERE refresh_token=$1`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var roleId int
+	err = pgsql.DB.QueryRow(
+		`SELECT role_id FROM users WHERE id=$1`,
+		&sess.UserId).Scan(&roleId)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var resp TokenResponse
+	resp.AccessToken, _ = GenerateAccessToken(sess.UserId, roleId)
+	resp.RefreshToken, _ = GenerateRefreshToken()
+
+	if _, err = stmt.Exec(
+		&sess.RefreshToken, &resp.RefreshToken,
 		time.Now().Add(RefreshTokenLifeTime)); err != nil {
 		log.Fatal(err)
 	}
@@ -91,11 +122,13 @@ func GetSessionByRefreshToken(refreshToken string) (Session, error) {
 	var sess Session
 	if err := stmt.QueryRow(&refreshToken).Scan(
 		&sess.Id, &sess.UserId, &sess.ExpiresAt); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return Session{}, e.ErrSessionNotExist
 		}
 		log.Fatal(err)
 	}
+	sess.RefreshToken = refreshToken
+
 	return sess, nil
 }
 

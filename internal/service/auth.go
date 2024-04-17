@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	auth "VEEEKTOR_api/internal/auth"
-	"VEEEKTOR_api/internal/models"
 	e "VEEEKTOR_api/pkg/errors"
 )
 
@@ -53,14 +52,7 @@ func UpdateToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user models.User
-	if user, err = models.GetUserById(sess.UserId); err != nil {
-		e.ResponseWithError(
-			w, r, http.StatusNotFound, e.ErrUserNotFound)
-		return
-	}
-
-	tokens, _ := auth.StoreSession(sess.UserId, user.Id)
+	tokens, _ := auth.UpdateSession(sess)
 
 	// Write jwt and refresh token pair
 	jsonBytes, _ := json.Marshal(tokens)
@@ -72,6 +64,7 @@ func UpdateToken(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	})
+
 	w.Write(jsonBytes)
 }
 
