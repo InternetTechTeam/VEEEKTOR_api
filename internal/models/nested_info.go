@@ -71,25 +71,30 @@ func (info *NestedInfo) Validate() error {
 	if len(info.Name) == 0 {
 		return e.ErrMissingFields
 	}
+	var exists bool
 
 	if info.Id != 0 {
-		stmt, err := pgsql.DB.Prepare(
-			`SELECT 1 FROM nested_infos WHERE id=$1`)
+		err := pgsql.DB.QueryRow(
+			`SELECT 1 FROM nested_info WHERE id = $1`,
+			&info.Id).Scan(&exists)
 		if err != nil {
-			log.Fatal(err)
-		}
-		var exist bool
-		if err = stmt.QueryRow(&info.Id).Scan(&exist); err != nil {
 			if err == sql.ErrNoRows {
-				return e.ErrNestedInfoNotFound
+				return e.ErrNestedLabNotFound
 			}
 			log.Fatal(err)
 		}
 	}
 
-	if _, err := GetCourseById(info.CourseId); err != nil {
-		return e.ErrCourseNotFound
+	err := pgsql.DB.QueryRow(
+		`SELECT 1 FROM courses WHERE id = $1`,
+		&info.CourseId).Scan(&exists)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return e.ErrCourseNotFound
+		}
+		log.Fatal(err)
 	}
+
 	return nil
 }
 

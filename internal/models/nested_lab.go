@@ -84,11 +84,12 @@ func (lab *NestedLab) Validate() error {
 		lab.LocationId == 0 {
 		return e.ErrMissingFields
 	}
+	var exists bool
 
 	if lab.Id != 0 {
 		err := pgsql.DB.QueryRow(
 			`SELECT 1 FROM nested_labs WHERE id = $1`,
-			&lab.Id).Scan()
+			&lab.Id).Scan(&exists)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return e.ErrNestedLabNotFound
@@ -99,7 +100,7 @@ func (lab *NestedLab) Validate() error {
 
 	err := pgsql.DB.QueryRow(
 		`SELECT 1 FROM locations WHERE id = $1`,
-		&lab.LocationId).Scan()
+		&lab.LocationId).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return e.ErrLocationNotFound
@@ -109,7 +110,7 @@ func (lab *NestedLab) Validate() error {
 
 	err = pgsql.DB.QueryRow(
 		`SELECT 1 FROM courses WHERE id = $1`,
-		&lab.CourseId).Scan()
+		&lab.CourseId).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return e.ErrCourseNotFound

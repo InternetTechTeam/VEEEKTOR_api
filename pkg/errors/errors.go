@@ -89,6 +89,8 @@ var (
 		"nested test pages not found")
 	ErrTimeLimitTooShort = errors.New(
 		"time limit should be more than 5 minutes")
+	TimeLimitNotValid = errors.New(
+		"time limit not valid")
 	// Locations
 	ErrLocationNotFound = errors.New(
 		"location not found")

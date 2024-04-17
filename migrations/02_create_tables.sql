@@ -65,12 +65,12 @@ CREATE TABLE nested_tests (
     course_id   INT REFERENCES courses(id) ON DELETE CASCADE,
     opens       TIMESTAMP WITH TIME ZONE NOT NULL,
     closes      TIMESTAMP WITH TIME ZONE NOT NULL,
-    tasks_count INT,
-    topic       VARCHAR(512),
+    tasks_count INT NOT NULL,
+    topic       VARCHAR(512) NOT NULL,
     location_id INT REFERENCES locations(id) ON DELETE SET NULL,
-    attempts    INT, 
+    attempts    INT NOT NULL, 
     password    VARCHAR(256),
-    time_limit  TIME
+    time_limit  TIME NOT NULL
 );
 
 CREATE TABLE nested_labs (
@@ -82,5 +82,5 @@ CREATE TABLE nested_labs (
     requirements VARCHAR(512),
     example      VARCHAR(512),
     location_id  INT REFERENCES locations(id) ON DELETE SET NULL,
-    attempts     INT
+    attempts     INT NOT NULL
 );

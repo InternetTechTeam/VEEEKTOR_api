@@ -5,20 +5,22 @@ import (
 	e "VEEEKTOR_api/pkg/errors"
 	"database/sql"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 )
 
 type NestedTest struct {
-	Id         int           `json:"id"`
-	CourseId   int           `json:"course_id"`
-	Opens      time.Time     `json:"opens"`
-	Closes     time.Time     `json:"closes"`
-	TasksCount int           `json:"tasks_count,omitempty"`
-	Topic      string        `json:"topic"`
-	LocationId int           `json:"location_id,omitempty"`
-	Attempts   int           `json:"attempts,omitempty"`
-	Password   string        `json:"password,omitempty"`
-	TimeLimit  time.Duration `json:"time_limit,omitempty"`
+	Id         int       `json:"id"`
+	CourseId   int       `json:"course_id"`
+	Opens      time.Time `json:"opens"`
+	Closes     time.Time `json:"closes"`
+	TasksCount int       `json:"tasks_count,omitempty"`
+	Topic      string    `json:"topic"`
+	LocationId int       `json:"location_id,omitempty"`
+	Attempts   int       `json:"attempts,omitempty"`
+	Password   string    `json:"password,omitempty"`
+	TimeLimit  string    `json:"time_limit,omitempty"`
 }
 
 // Errors: ErrTestNotFound
@@ -32,13 +34,12 @@ func GetNestedTestById(testId int) (NestedTest, error) {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
 
-	var duration string
 	var test NestedTest
 	if err = stmt.QueryRow(&testId).Scan(
 		&test.Id, &test.CourseId, &test.Opens,
 		&test.Closes, &test.TasksCount, &test.Topic,
 		&test.LocationId, &test.Attempts, &test.Password,
-		&duration); err != nil {
+		&test.TimeLimit); err != nil {
 		if err == sql.ErrNoRows {
 			return test, e.ErrNestedTestNotFound
 		}
@@ -85,19 +86,30 @@ func GetNestedTestsByCourseId(courseId int) ([]NestedTest, error) {
 func (test *NestedTest) Validate() error {
 	if len(test.Topic) == 0 ||
 		test.Attempts == 0 ||
-		test.LocationId == 0 ||
-		int(test.TimeLimit.Seconds()) == 0 {
+		test.LocationId == 0 {
 		return e.ErrMissingFields
 	}
 
-	if int(test.TimeLimit.Minutes()) < 5 {
-		return e.ErrTimeLimitTooShort
+	tl := strings.Split(test.TimeLimit, ":")
+	if len(tl) != 3 {
+		return e.TimeLimitNotValid
 	}
+	if h, err := strconv.Atoi(tl[0]); err != nil || h > 23 || h < 0 {
+		return e.TimeLimitNotValid
+	}
+	if m, err := strconv.Atoi(tl[1]); err != nil || m > 59 || m < 0 {
+		return e.TimeLimitNotValid
+	}
+	if s, err := strconv.Atoi(tl[2]); err != nil || s > 59 || s < 0 {
+		return e.TimeLimitNotValid
+	}
+
+	var exists bool
 
 	if test.Id != 0 {
 		err := pgsql.DB.QueryRow(
 			`SELECT 1 FROM nested_tests WHERE id = $1`,
-			&test.Id).Scan()
+			&test.Id).Scan(&exists)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return e.ErrNestedTestNotFound
@@ -108,7 +120,7 @@ func (test *NestedTest) Validate() error {
 
 	err := pgsql.DB.QueryRow(
 		`SELECT 1 FROM locations WHERE id = $1`,
-		&test.LocationId).Scan()
+		&test.LocationId).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return e.ErrLocationNotFound
@@ -118,7 +130,7 @@ func (test *NestedTest) Validate() error {
 
 	err = pgsql.DB.QueryRow(
 		`SELECT 1 FROM courses WHERE id = $1`,
-		&test.CourseId).Scan()
+		&test.CourseId).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return e.ErrCourseNotFound
