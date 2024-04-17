@@ -71,7 +71,7 @@ func UsersGetHandler(w http.ResponseWriter, r *http.Request) {
 // Access token claims:
 // exp : token expiration date and time in UNIX format;
 // user_id : user id;
-// role_id : User role id.
+// role_id : user role id.
 // Cookie:
 // refresh_token : <rt>.
 // Response codes:

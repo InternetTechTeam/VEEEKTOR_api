@@ -26,10 +26,10 @@ func GetNestedTestsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Nested tests GET logic.
-// Lab pages can only be accessable for users that belongs to course.
+// Lab pages can only be accessible for users that belongs to course.
 // Url values should contain ?id=<test_id> or ?id=<course_id>.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // Response: Error message or test(s) by test id (course id):
 // id : test id;
 // course_id : course id;
@@ -121,7 +121,7 @@ func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request) {
 
 // Nested test POST logic.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // This method allowed only to teachers, who belongs to course or admins.
 // Response: Error message or StatusOk:
 // Expected body:
@@ -187,7 +187,7 @@ func NestedTestsCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 // Nested test page PUT logic.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // This method allowed only to teachers, who belongs to course or admins.
 // Response: Error message or StatusOk:
 // Expected body:
@@ -255,7 +255,7 @@ func NestedTestsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 // Nested test page DELETE logic.
 // URL values should contain ?id=<test_id>
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // This method allowed only to admins and teachers, who belongs to course.
 // Response: Error message or StatusOk:
 // Response codes:

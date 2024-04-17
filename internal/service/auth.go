@@ -10,17 +10,17 @@ import (
 
 // Token refresh for mobile and web clients.
 // Expected cookie / body (for mobile clients):
-// "refresh_token" : <refresh token>.
+// refresh_token : <refresh token>.
 // Response:
 // Error message or token pair:
-// "access_token"  : token for access to private pages, lifetime - 15m;
-// "refresh_token" : token for refreshing access token, lifetime - 30 days.
+// access_token : token for access to private pages, lifetime - 15m;
+// refresh_token : token for refreshing access token, lifetime - 30 days.
 // Access token claims:
-// "exp" : token expiration date and time;
-// "user_id" : user id;
-// "role_id" : user role id.
+// exp : token expiration date and time;
+// user_id : user id;
+// role_id : user role id.
 // Cookie:
-// "refresh_token" : <rt>.
+// refresh_token : <rt>.
 // Response codes:
 // 200, 400, 401, 405.
 func UpdateToken(w http.ResponseWriter, r *http.Request) {

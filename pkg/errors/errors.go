@@ -51,12 +51,16 @@ var (
 		"only admin can set this role")
 	// Departments
 	ErrDepNotFound = errors.New(
-		"department with this id not found")
+		"department not found")
+	ErrDepsNotFound = errors.New(
+		"departments not found")
 	ErrCantSetThisDep = errors.New(
 		"this department can be viewed only by admins")
 	// Educational envs
 	ErrEdEnvNotFound = errors.New(
-		"educational environment with this id not found")
+		"educational environment not found")
+	ErrEdEnvsNotFound = errors.New(
+		"educational environments not found")
 	// Courses
 	ErrCourseIdNull = errors.New(
 		"course id must be set")

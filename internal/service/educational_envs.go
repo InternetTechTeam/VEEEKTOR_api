@@ -24,7 +24,7 @@ func GetEducatinalEnvironmentsHandler(w http.ResponseWriter, r *http.Request) {
 // id : id of educational env;
 // name : name of educational env.
 // Response codes:
-// 200, 400, 404, 500.
+// 200, 400, 404.
 func EducationalEnvsGetHandler(w http.ResponseWriter, r *http.Request) {
 	var jsonBytes []byte
 
@@ -40,7 +40,7 @@ func EducationalEnvsGetHandler(w http.ResponseWriter, r *http.Request) {
 		env, err := models.GetEducationalEnvironmentById(envId)
 		if err != nil {
 			e.ResponseWithError(
-				w, r, http.StatusNotFound, err)
+				w, r, http.StatusNotFound, e.ErrEdEnvNotFound)
 			return
 		}
 
@@ -49,7 +49,7 @@ func EducationalEnvsGetHandler(w http.ResponseWriter, r *http.Request) {
 		envs, err := models.GetAllEducationalEnvs()
 		if err != nil {
 			e.ResponseWithError(
-				w, r, http.StatusInternalServerError, err)
+				w, r, http.StatusNotFound, e.ErrEdEnvsNotFound)
 			return
 		}
 

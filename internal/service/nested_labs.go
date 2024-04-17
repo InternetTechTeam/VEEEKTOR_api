@@ -26,10 +26,10 @@ func GetNestedLabsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Nested labs GET logic.
-// Lab pages can only be accessable for users that belongs to course.
+// Lab pages can only be accessible for users that belongs to course.
 // Url values should contain ?id=<lab_id> or ?id=<course_id>.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // Response: Error message or lab page(s) by lab id (course id):
 // id : lab id;
 // course_id : course id;
@@ -120,7 +120,7 @@ func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request) {
 
 // Nested labs POST logic.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // This method allowed only to teachers, who belongs to course or admins.
 // Response: Error message or StatusOk:
 // Expected body:
@@ -185,7 +185,7 @@ func NestedLabsCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 // Nested labs PUT logic.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // This method allowed only to teachers, who belongs to course or admins.
 // Response: Error message or StatusOk:
 // Expected body:
@@ -252,7 +252,7 @@ func NestedLabsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 // Nested labs DELETE logic.
 // URL values should contain ?id=<lab_id>
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // This method allowed only to admins and teachers, who belongs to course.
 // Response: Error message or StatusOk:
 // Response codes:

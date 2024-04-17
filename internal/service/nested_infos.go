@@ -27,10 +27,10 @@ func GetNestedInfosHandler(w http.ResponseWriter, r *http.Request) {
 
 // Nested infos GET logic.
 // Url values should contain ?id=<info_id> or ?id=<course_id>.
-// Info pages can only be accessable for users that belongs to info page course.
+// Info pages can only be accessible for users that belongs to info page course.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
-// Response: Error message or info pages by course id (info id):
+// Authorization : Bearer <access token>
+// Response: Error message or info page(s) by info id (course id):
 // id : id of info page;
 // course_id : id of info page course;
 // markdown : markdown of info page (only for get by id);
@@ -114,7 +114,7 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request) {
 
 // Course infos POST logic.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // This method allowed only to teachers, who belongs to course or admins.
 // Response: Error message or StatusOk:
 // Expected body:
@@ -173,7 +173,7 @@ func NestedInfosCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 // Nested infos PUT logic.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // This method allowed only to teachers, who belongs to course or admins.
 // Response: Error message or StatusOk:
 // Expected body:
@@ -233,13 +233,13 @@ func NestedInfosUpdateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Nested infos DELETE logic.
+// URL values should contain ?id=<info_page_id>.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>.
+// Authorization : Bearer <access token>.
 // This method allowed only to admins and teachers, who belongs to course.
 // Response: Error message or StatusOk:
-// URL values should contain ?id=<id_of_info_page>.
 // Response codes:
-// 200, 400, 401, 403, 404, 500.
+// 200, 400, 401, 403, 404.
 func NestedInfosDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {

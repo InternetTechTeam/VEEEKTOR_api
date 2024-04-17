@@ -25,7 +25,7 @@ func GetDepartmentsHandler(w http.ResponseWriter, r *http.Request) {
 // name : name of department;
 // env_id : id of department educational environment.
 // Response codes:
-// 200, 400, 404, 500.
+// 200, 400, 404.
 func DepartmentsGetHandler(w http.ResponseWriter, r *http.Request) {
 	var jsonBytes []byte
 
@@ -57,7 +57,7 @@ func DepartmentsGetHandler(w http.ResponseWriter, r *http.Request) {
 		deps, err := models.GetAllDepartmentsByEnvironmentId(envId)
 		if err != nil {
 			e.ResponseWithError(
-				w, r, http.StatusInternalServerError, err)
+				w, r, http.StatusNotFound, e.ErrDepsNotFound)
 			return
 		}
 
@@ -67,7 +67,7 @@ func DepartmentsGetHandler(w http.ResponseWriter, r *http.Request) {
 		deps, err := models.GetAllDepartments()
 		if err != nil {
 			e.ResponseWithError(
-				w, r, http.StatusInternalServerError, err)
+				w, r, http.StatusNotFound, e.ErrDepsNotFound)
 			return
 		}
 

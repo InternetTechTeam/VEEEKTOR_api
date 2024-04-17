@@ -26,7 +26,7 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 // Courses GET logic.
 // Courses can be get by id in url values or by user id in token claims;
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // Response: Error message or course(s) by course id (user id):
 // id : id of course;
 // name : name of course;
@@ -92,7 +92,7 @@ func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
 
 // Courses INSERT logic.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // Course creation allowed only to teachers and admins.
 // Response: Error message or StatusOk:
 // Expected body:
@@ -147,7 +147,7 @@ func CoursesCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 // Courses PUT logic.
 // Expected header:
-// Authorization : Bearer <Valid Access Token>
+// Authorization : Bearer <access token>
 // Course update allowed only to teachers and admins.
 // Response: Error message or StatusOk:
 // Expected body:
