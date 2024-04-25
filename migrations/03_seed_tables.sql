@@ -28,17 +28,26 @@ VALUES
 
 INSERT INTO courses (name, term, teacher_id, markdown, dep_id) 
 VALUES 
-('Компьютерный практикум', 1, 1, 'Some markdown1', 2),
-('Информационные системы и технологии', 2, 1, 'Some markdown2', 2),
-('Информационные системы и технологии', 3, 1, 'Some markdown3', 2),
-('Философия', 4, 1, 'Some markdown4', 6),
-('Психология', 5, 1, 'Some markdown5', 6),
-('Большевистская железная дорога', 6, 1, 'Some markdown6', 6),
-('Крутой предмет О6', 2, 2, '## О6, **FATO6** __underline__, > O6?', 3),
-('Крутой предмет О4', 2, 3, '## О4, **FATO4** __underline__, > O4?', 4),
-('Крутой предмет И9', 2, 4, '## И9, **FATИ9** __underline__, > И9?', 5),
-('Крутой предмет П1', 2, 5, '## P1, **FATP1** __underline__, > P1?', 6);
+('Компьютерный практикум', 1, 1, 
+'## Комптютерный практикум \[Технологическая карта](http://134.209.230.107:8080/api/courses/infos?id=1) \[Тест 1](http://134.209.230.107:8080/api/courses/tests?id=1) \[Лабораторная работа 1](http://134.209.230.107:8080/api/courses/labs?id=1)', 2),
 
+('Информационные системы и технологии', 2, 1, '## Информационные системы и технологии \[Технологическая карта](http://134.209.230.107:8080/api/courses/infos?id=2) \[Тест 1](http://134.209.230.107:8080/api/courses/tests?id=2) \[Лабораторная работа 1](http://134.209.230.107:8080/api/courses/labs?id=2)', 2),
+
+('Информационные системы и технологии', 3, 1, '## Информационные системы и технологии \[Технологическая карта](http://134.209.230.107:8080/api/courses/infos?id=3) \[Тест 1](http://134.209.230.107:8080/api/courses/tests?id=3) \[Лабораторная работа 1](http://134.209.230.107:8080/api/courses/labs?id=3)', 2),
+
+('Философия', 4, 1, '## Философия \[Технологическая карта](http://134.209.230.107:8080/api/courses/infos?id=4) \[Тест 1](http://134.209.230.107:8080/api/courses/tests?id=4) \[Лабораторная работа 1](http://134.209.230.107:8080/api/courses/labs?id=4)', 6),
+
+('Психология', 5, 1, '## Психология \[Технологическая карта](http://134.209.230.107:8080/api/courses/infos?id=5) \[Тест 1](http://134.209.230.107:8080/api/courses/tests?id=5) \[Лабораторная работа 1](http://134.209.230.107:8080/api/courses/labs?id=5)', 6),
+
+('Большевистская железная дорога', 6, 1, '## БЖД \[Технологическая карта](http://134.209.230.107:8080/api/courses/infos?id=6) \[Тест 1](http://134.209.230.107:8080/api/courses/tests?id=6) \[Лабораторная работа 1](http://134.209.230.107:8080/api/courses/labs?id=6)', 6),
+
+('Крутой предмет О6', 2, 2, '## Предмет О6 \[Технологическая карта](http://134.209.230.107:8080/api/courses/infos?id=7) \[Тест 1](http://134.209.230.107:8080/api/courses/tests?id=7) \[Лабораторная работа 1](http://134.209.230.107:8080/api/courses/labs?id=7)', 3),
+
+('Крутой предмет О4', 2, 3, '## Предмет О4 \[Технологическая карта](http://134.209.230.107:8080/api/courses/infos?id=8) \[Тест 1](http://134.209.230.107:8080/api/courses/tests?id=8) \[Лабораторная работа 1](http://134.209.230.107:8080/api/courses/labs?id=8)', 4),
+
+('Крутой предмет И9', 2, 4, '## Предмет И9 \[Технологическая карта](http://134.209.230.107:8080/api/courses/infos?id=9) \[Тест 1](http://134.209.230.107:8080/api/courses/tests?id=9) \[Лабораторная работа 1](http://134.209.230.107:8080/api/courses/labs?id=9)', 5),
+
+('Крутой предмет П1', 2, 5, '## Предмет П1 \[Технологическая карта](http://134.209.230.107:8080/api/courses/infos?id=10) \[Тест 1](http://134.209.230.107:8080/api/courses/tests?id=10) \[Лабораторная работа 1](http://134.209.230.107:8080/api/courses/labs?id=10)', 6);
 
 INSERT INTO user_courses (user_id, course_id) 
 VALUES 
@@ -99,29 +108,38 @@ VALUES
 (1, '2024-01-01 08:00:00', '2024-05-30 00:00:00',
 'Лабораторная работа 1: Make', 
 'https://docs.google.com/document/d/1r6a0xbuxaqbIAG25Bcu9iBH6t9eCQr0zqJTEEC5VIsg/edit#heading=h.ibwrrmm3ajwe', '', 2, 1),
+
 (2, '2024-02-01 08:00:00', '2024-05-30 00:00:00',
 'Лабораторная работа 1: C#', 
 'https://docs.google.com/document/d/1r6a0xbuxaqbIAG25Bcu9iBH6t9eCQr0zqJTEEC5VIsg/edit#heading=h.ibwrrmm3ajwe', 
 'https://www.google.com', 1, 3),
+
 (3, '2024-03-01 08:00:00', '2024-05-30 00:00:00',
 'Лабораторная работа 1: C++', 'https://docs.google.com/document/d/1r6a0xbuxaqbIAG25Bcu9iBH6t9eCQr0zqJTEEC5VIsg/edit#heading=h.ibwrrmm3ajwe', 
 'https://www.google.com', 2, 1),
+
 (4, '2024-04-01 08:00:00', '2024-05-30 00:00:00',
 'Лабораторная работа 1: Философия ворониных', 'https://docs.google.com/document/d/1r6a0xbuxaqbIAG25Bcu9iBH6t9eCQr0zqJTEEC5VIsg/edit#heading=h.ibwrrmm3ajwe', 
 'https://www.google.com', 1, 3),
+
 (5, '2024-05-01 08:00:00', '2024-05-30 00:00:00',
 'Лабораторная работа 1: Повторение опасных трюков из сериалов', 'https://docs.google.com/document/d/1r6a0xbuxaqbIAG25Bcu9iBH6t9eCQr0zqJTEEC5VIsg/edit#heading=h.ibwrrmm3ajwe', 'https://www.google.com', 2, 1),
+
 (6, '2024-06-01 08:00:00', '2024-05-30 00:00:00',
 'Лабораторная работа 1: Критика запада', 'https://docs.google.com/document/d/1r6a0xbuxaqbIAG25Bcu9iBH6t9eCQr0zqJTEEC5VIsg/edit#heading=h.ibwrrmm3ajwe', 
 'https://www.google.com', 1, 3),
+
 (7, '2024-07-01 08:00:00', '2024-05-30 00:00:00',
 'Лабораторная работа 1 предмета О6 ', 'https://docs.google.com/document/d/1r6a0xbuxaqbIAG25Bcu9iBH6t9eCQr0zqJTEEC5VIsg/edit#heading=h.ibwrrmm3ajwe', 
 'https://www.google.com', 2, 1),
+
 (8, '2024-08-01 08:00:00', '2024-05-30 00:00:00',
 'Лабораторная работа 1 предмета О4', 'https://docs.google.com/document/d/1r6a0xbuxaqbIAG25Bcu9iBH6t9eCQr0zqJTEEC5VIsg/edit#heading=h.ibwrrmm3ajwe', 
 'https://www.google.com', 1, 3),
+
 (9, '2024-09-01 08:00:00', '2024-05-30 00:00:00',
 'Лабораторная работа 1 предмета И9', 'https://docs.google.com/document/d/1r6a0xbuxaqbIAG25Bcu9iBH6t9eCQr0zqJTEEC5VIsg/edit#heading=h.ibwrrmm3ajwe', 
 'https://www.google.com', 2, 1),
+
 (10, '2024-10-01 08:00:00', '2024-05-30 00:00:00',
 'Лабораторная работа 1 предмета П1', '', '', 1, 3);
