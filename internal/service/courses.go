@@ -40,7 +40,7 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 // teacher.surname : teacher surname (get by user id only);
 // teacher.dep : teacher department (get by user id only);
 // dep : course department (get by user id only);
-// modified_at : course last modified time.
+// modified_at : course last modified time (get by user id only).
 // Response codes:
 // 200, 400, 401, 404.
 func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
