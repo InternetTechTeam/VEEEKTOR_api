@@ -5,6 +5,7 @@ import (
 	"VEEEKTOR_api/internal/models"
 	e "VEEEKTOR_api/pkg/errors"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -136,13 +137,14 @@ func CoursesCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = course.Insert(); err != nil {
+	course_id, err := course.Insert()
+	if err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf(`{"id" : %d}`, course_id)))
 }
 
 // Courses PUT logic.

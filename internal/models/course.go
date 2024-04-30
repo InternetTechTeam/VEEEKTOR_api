@@ -158,9 +158,9 @@ func (c *Course) Validate() error {
 
 // Errors: ErrCourseNotFound, ErrTermNotValid, ErrCourseNameNotValid
 // ErrTeacherNotFound, ErrDepNotFound
-func (c *Course) Insert() error {
+func (c *Course) Insert() (int, error) {
 	if err := c.Validate(); err != nil {
-		return err
+		return 0, err
 	}
 
 	stmt, err := pgsql.DB.Prepare(
@@ -181,7 +181,7 @@ func (c *Course) Insert() error {
 		log.Fatal(err)
 	}
 
-	return nil
+	return c.Id, nil
 }
 
 // Errors: ErrCourseNotFound, ErrTermNotValid, ErrCourseNameNotValid
