@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"time"
 )
 
 type Course struct {
@@ -28,6 +29,7 @@ type CourseMultipleExportDTO struct {
 		Surname    string `json:"surname"`
 		Dep        string `json:"department"`
 	} `json:"teacher"`
+	ModifiedAt time.Time `json:"modified_at"`
 }
 
 // Errors: ErrCoursesNotFound
@@ -62,8 +64,8 @@ func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
 	}
 
 	selCourseStmt, err := pgsql.DB.Prepare(
-		`SELECT c.name, c.term, d_c.name, 
-		u.name, u.patronymic, u.surname, d_u.name 
+		`SELECT c.name, c.term, d_c.name, u.name, 
+		u.patronymic, u.surname, d_u.name, c.modified_at 
 		FROM courses AS c 
 		JOIN users AS u ON c.teacher_id=u.id 
 		JOIN departments AS d_u ON d_u.id=u.dep_id 
@@ -88,7 +90,8 @@ func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
 
 		if err := selCourseStmt.QueryRow(&c.Id).Scan(
 			&c.Name, &c.Term, &c.Dep, &c.Teacher.Name,
-			&c.Teacher.Patronymic, &c.Teacher.Surname, &c.Teacher.Dep); err != nil {
+			&c.Teacher.Patronymic, &c.Teacher.Surname,
+			&c.Teacher.Dep, &c.ModifiedAt); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return courses, e.ErrCoursesNotFound
 			}
@@ -197,7 +200,8 @@ func (c *Course) Update() error {
 
 	stmt, err := pgsql.DB.Prepare(
 		`UPDATE courses SET name=$2, term=$3, 
-		teacher_id=$4, markdown=$5, dep_id=$6 
+		teacher_id=$4, markdown=$5, dep_id=$6, 
+		modified_at=$7
 		WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
@@ -205,23 +209,32 @@ func (c *Course) Update() error {
 
 	if _, err = stmt.Exec(
 		&c.Id, &c.Name, &c.Term, &c.TeacherId,
-		&c.Markdown, &c.DepId); err != nil {
+		&c.Markdown, &c.DepId, time.Now()); err != nil {
+		log.Fatal(err)
+	}
+
+	if err = LinkUserWithCourse(c.TeacherId, c.Id); err != nil {
 		log.Fatal(err)
 	}
 
 	return nil
 }
 
-// Expected that link will be unique.
 // Errors: -
 func LinkUserWithCourse(userId, courseId int) error {
-	stmt, err := pgsql.DB.Prepare(
-		`INSERT INTO user_courses (user_id, course_id) VALUES ($1, $2)`)
-	if err != nil {
-		log.Fatal(e.ErrCantPrepareDbStmt)
+	var exists bool
+	err := pgsql.DB.QueryRow(
+		`SELECT 1 FROM user_courses WHERE user_id=$1 and course_id=$2`,
+		&userId, &courseId).Scan(&exists)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Fatal(err)
+	} else if err == nil {
+		return nil
 	}
 
-	if _, err = stmt.Exec(userId, courseId); err != nil {
+	if _, err = pgsql.DB.Exec(
+		`INSERT INTO user_courses (user_id, course_id) VALUES ($1, $2)`,
+		userId, courseId); err != nil {
 		log.Fatal(err)
 	}
 
