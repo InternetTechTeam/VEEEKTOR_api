@@ -40,6 +40,7 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 // teacher.surname : teacher surname (get by user id only);
 // teacher.dep : teacher department (get by user id only);
 // dep : course department (get by user id only);
+// modified_at : course last modified time.
 // Response codes:
 // 200, 400, 401, 404.
 func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +96,8 @@ func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
 // Expected header:
 // Authorization : Bearer <access token>
 // Course creation allowed only to teachers and admins.
-// Response: Error message or StatusOk:
+// Response:
+// id : course id.
 // Expected body:
 // name : name of course;
 // term : term of course;

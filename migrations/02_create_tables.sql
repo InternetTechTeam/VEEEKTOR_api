@@ -34,12 +34,13 @@ CREATE TABLE sessions (
 );
 
 CREATE TABLE courses (
-    id         SERIAL PRIMARY KEY,
-    name       VARCHAR(200) NOT NULL,
-    term       INT NOT NULL,
-    teacher_id INT REFERENCES users(id) ON DELETE SET NULL,
-    markdown   TEXT,
-    dep_id     INT REFERENCES departments(id) ON DELETE SET NULL
+    id             SERIAL PRIMARY KEY,
+    name           VARCHAR(200) NOT NULL,
+    term           INT NOT NULL,
+    teacher_id     INT REFERENCES users(id) ON DELETE SET NULL,
+    markdown       TEXT,
+    dep_id         INT REFERENCES departments(id) ON DELETE SET NULL,
+    modified_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 CREATE TABLE user_courses (
