@@ -29,7 +29,7 @@ type CourseMultipleExportDTO struct {
 		Surname    string `json:"surname"`
 		Dep        string `json:"department"`
 	} `json:"teacher"`
-	ModifiedAt time.Time `json:"modified_at"`
+	ModifiedAt int64 `json:"modified_at"`
 }
 
 // Errors: ErrCoursesNotFound
@@ -88,15 +88,17 @@ func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
 			log.Fatal(err)
 		}
 
+		var t time.Time
 		if err := selCourseStmt.QueryRow(&c.Id).Scan(
 			&c.Name, &c.Term, &c.Dep, &c.Teacher.Name,
 			&c.Teacher.Patronymic, &c.Teacher.Surname,
-			&c.Teacher.Dep, &c.ModifiedAt); err != nil {
+			&c.Teacher.Dep, &t); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return courses, e.ErrCoursesNotFound
 			}
 			log.Fatal(err)
 		}
+		c.ModifiedAt = t.Unix()
 		courses = append(courses, c)
 	}
 
