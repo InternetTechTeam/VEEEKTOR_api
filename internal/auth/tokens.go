@@ -20,8 +20,7 @@ import (
 var (
 	AccessTokenLifeTime  = time.Minute * 15    // 15 minutes
 	RefreshTokenLifeTime = time.Minute * 43800 // 30 days
-	// Should be implemented via environment
-	AccessKey = []byte(os.Getenv("JWT_KEY"))
+	AccessKey            = []byte(os.Getenv("JWT_KEY"))
 )
 
 type TokenResponse struct {

@@ -228,8 +228,7 @@ func (c *Course) Update() error {
 	stmt, err := pgsql.DB.Prepare(
 		`UPDATE courses SET name=$2, term=$3, 
 		teacher_id=$4, markdown=$5, dep_id=$6, 
-		modified_at=$7
-		WHERE id=$1`)
+		modified_at=$7 WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}

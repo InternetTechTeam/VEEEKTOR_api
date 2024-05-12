@@ -91,7 +91,6 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request,
 
 		var course models.Course
 		course.Id = courseId
-
 		if course.CheckAccess(claims) == 0 {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
@@ -147,7 +146,7 @@ func NestedInfosCreateHandler(w http.ResponseWriter, r *http.Request,
 
 	if info.CheckAccess(claims) != 2 {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
 	}
 
@@ -191,6 +190,7 @@ func NestedInfosUpdateHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
+	// NOT THE BEST CHECK
 	if info.CheckAccess(claims) != 2 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
@@ -208,9 +208,9 @@ func NestedInfosUpdateHandler(w http.ResponseWriter, r *http.Request,
 
 // Nested infos DELETE logic.
 // URL values should contain ?id=<info_page_id>.
+// This method allowed only to admins and teachers, who belongs to course.
 // Expected header:
 // Authorization : Bearer <access token>.
-// This method allowed only to admins and teachers, who belongs to course.
 // Response: Error message or StatusOk:
 // Response codes:
 // 200, 400, 401, 403, 404.

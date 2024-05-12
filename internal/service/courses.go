@@ -42,22 +42,22 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Courses GET logic.
-// Courses can be get by id in url values or by user id in token claims;
+// Courses can be get by id in url values or by group_id in token claims;
 // Expected header:
 // Authorization : Bearer <access token>
-// Response: Error message or course(s) by course id (user id):
+// Response: Error message or course(s) by course_id (group_id):
 // id : id of course;
 // name : name of course;
 // term : term of course;
-// teacher_id : id of teacher (user) (get by course id only);
-// markdown : markdown text of course (get by course id only);
-// dep_id : id of course department (get by course id only);
-// teacher.name : teacher name (get by user id only);
-// teacher.patronymic : teacher patronymic (get by user id only);
-// teacher.surname : teacher surname (get by user id only);
-// teacher.dep : teacher department (get by user id only);
-// dep : course department (get by user id only);
-// modified_at : course last modified time in UNIX format (get by user id only).
+// teacher_id : id of teacher (user) (get by course_id only);
+// markdown : markdown text of course (get by course_id only);
+// dep_id : id of course department (get by course_id only);
+// teacher.name : teacher name (get by group_id only);
+// teacher.patronymic : teacher patronymic (get by group_id only);
+// teacher.surname : teacher surname (get by group_id only);
+// teacher.dep : teacher department (get by group_id only);
+// dep : course department (get by group_id only);
+// modified_at : course last modified time in UNIX format (get by group_id only).
 // Response codes:
 // 200, 400, 401, 404.
 func CoursesGetHandler(w http.ResponseWriter, r *http.Request,

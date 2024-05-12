@@ -159,7 +159,7 @@ func NestedLabsCreateHandler(w http.ResponseWriter, r *http.Request,
 
 	if lab.CheckAccess(claims) != 2 {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
 	}
 

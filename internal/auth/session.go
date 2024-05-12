@@ -17,7 +17,7 @@ type Session struct {
 	ExpiresAt    time.Time `json:"expires_at"`
 }
 
-// User id and role_id must be valid.
+// User id, role_id and group_id must be valid.
 // Errors: -
 func StoreSession(user_id, role_id, groupId int) (TokenResponse, error) {
 	stmt, err := pgsql.DB.Prepare(

@@ -43,7 +43,7 @@ func GetNestedTestsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Nested tests GET logic.
-// Lab pages can only be accessible for users that belongs to course.
+// Test pages can only be accessible for users that belongs to course.
 // Url values should contain ?id=<test_id> or ?id=<course_id>.
 // Expected header:
 // Authorization : Bearer <access token>
@@ -52,12 +52,12 @@ func GetNestedTestsHandler(w http.ResponseWriter, r *http.Request) {
 // course_id : course id;
 // opens : date, when test opens in UTC;
 // closes : date, when test closes in UTC;
-// tasks_count : count of test tasks (only on get by id);
+// tasks_count : count of test tasks (only with get by id);
 // topic : test topic;
-// location_id : id of location (only on get by id);
-// attempts : number of attempts (only on get by id);
-// password : test password (optional) (only on get by id);
-// time_limit : time limit duration (only on get by id).
+// location_id : id of location (only with get by id);
+// attempts : number of attempts (only with get by id);
+// password : test password (optional) (only with get by id);
+// time_limit : time limit duration (only with get by id).
 // Response codes:
 // 200, 400, 401, 403, 404.
 func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request,
@@ -123,7 +123,7 @@ func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request,
 	w.Write(jsonBytes)
 }
 
-// Nested test POST logic.
+// Nested tests POST logic.
 // Expected header:
 // Authorization : Bearer <access token>
 // This method allowed only to teachers, who belongs to course or admins.
@@ -161,7 +161,7 @@ func NestedTestsCreateHandler(w http.ResponseWriter, r *http.Request,
 
 	if test.CheckAccess(claims) != 2 {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
 	}
 
@@ -228,9 +228,9 @@ func NestedTestsUpdateHandler(w http.ResponseWriter, r *http.Request,
 
 // Nested test page DELETE logic.
 // URL values should contain ?id=<test_id>
+// This method allowed only to admins and teachers, who belongs to course.
 // Expected header:
 // Authorization : Bearer <access token>
-// This method allowed only to admins and teachers, who belongs to course.
 // Response: Error message or StatusOk:
 // Response codes:
 // 200, 400, 401, 403, 404.
