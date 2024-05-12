@@ -31,7 +31,7 @@ var (
 	// Users
 	ErrUserNotFound = errors.New(
 		"user not found")
-	ErrUserExists = errors.New(
+	ErrUserExist = errors.New(
 		"user with this email already exists")
 	ErrAccessDenied = errors.New(
 		"permission denied")
@@ -61,6 +61,13 @@ var (
 		"educational environment not found")
 	ErrEdEnvsNotFound = errors.New(
 		"educational environments not found")
+	// Groups
+	ErrGroupNotExist = errors.New(
+		"group with this id does not exist")
+	ErrGroupNotFound = errors.New(
+		"group not found")
+	ErrGroupsNotFound = errors.New(
+		"groups not found")
 	// Courses
 	ErrCourseIdNull = errors.New(
 		"course id must be set")

@@ -7,6 +7,8 @@ import (
 	"errors"
 	"log"
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type NestedLab struct {
@@ -195,4 +197,30 @@ func DeleteNestedLabById(labId int) error {
 	}
 
 	return nil
+}
+
+// User have: 0 - no access, 1 - read access, 2 - write access
+func (l *NestedLab) CheckAccess(claims jwt.MapClaims) int {
+	var teacherId int
+	err := pgsql.DB.QueryRow(
+		`SELECT teacher_id FROM 
+		courses WHERE id=$1`, &l.CourseId).Scan(&teacherId)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if claims["user_id"].(int) == teacherId {
+		return 2
+	}
+
+	var exists int
+	err = pgsql.DB.QueryRow(
+		`SELECT 1 FROM group_courses 
+		WHERE group_id=$1 and course_id=$2`,
+		claims["group_id"].(int), &l.CourseId).Scan(&exists)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Fatal(err)
+	}
+
+	return exists
 }

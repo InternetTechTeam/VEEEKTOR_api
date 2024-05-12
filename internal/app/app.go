@@ -50,6 +50,9 @@ func getMultiplexer() *http.ServeMux {
 	// Departments
 	mux.HandleFunc(apiPrefix+"/departments", service.GetDepartmentsHandler)
 
+	// Groups
+	mux.HandleFunc(apiPrefix+"/groups", service.GetGroupsHandler)
+
 	// Courses
 	mux.HandleFunc(apiPrefix+"/courses", service.GetCouresesHandler)
 	mux.HandleFunc(apiPrefix+"/courses/infos", service.GetNestedInfosHandler)

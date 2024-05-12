@@ -7,6 +7,8 @@ import (
 	"errors"
 	"log"
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type Course struct {
@@ -56,46 +58,73 @@ func GetCourseById(courseId int) (Course, error) {
 }
 
 // Errors: ErrCoursesNotFound
-func GetAllCoursesByUserId(userId int) ([]CourseMultipleExportDTO, error) {
-	selCourseIdStmt, err := pgsql.DB.Prepare(
-		`SELECT course_id from user_courses WHERE user_id=$1`)
-	if err != nil {
-		log.Fatal(e.ErrCantPrepareDbStmt)
-	}
-
-	selCourseStmt, err := pgsql.DB.Prepare(
-		`SELECT c.name, c.term, d_c.name, u.name, 
+func GetAllCoursesByGroupId(groupId int) ([]CourseMultipleExportDTO, error) {
+	stmt, err := pgsql.DB.Prepare(
+		`SELECT c.id, c.name, c.term, d_c.name, u.name, 
 		u.patronymic, u.surname, d_u.name, c.modified_at 
 		FROM courses AS c 
 		JOIN users AS u ON c.teacher_id=u.id 
 		JOIN departments AS d_u ON d_u.id=u.dep_id 
 		JOIN departments AS d_c ON d_c.id=c.dep_id
-		WHERE c.id=$1`)
+		JOIN group_courses AS gc ON gc.group_id=$1
+		WHERE c.id=gc.course_id`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
 
+	var courses []CourseMultipleExportDTO
 	var rows *sql.Rows
-	if rows, err = selCourseIdStmt.Query(&userId); err != nil {
+	if rows, err = stmt.Query(&groupId); err != nil {
+		log.Fatal(err)
+	}
+
+	for rows.Next() {
+		var c CourseMultipleExportDTO
+		var t time.Time
+		if err := rows.Scan(
+			&c.Id, &c.Name, &c.Term, &c.Dep, &c.Teacher.Name,
+			&c.Teacher.Patronymic, &c.Teacher.Surname,
+			&c.Teacher.Dep, &t); err != nil {
+			log.Fatal(err)
+		}
+		c.ModifiedAt = t.Unix()
+		courses = append(courses, c)
+	}
+
+	if len(courses) == 0 {
+		return courses, e.ErrCoursesNotFound
+	}
+
+	return courses, nil
+}
+
+// Errors: ErrCoursesNotFound
+func GetAllCoursesByTeacherId(teacherId int) ([]CourseMultipleExportDTO, error) {
+	stmt, err := pgsql.DB.Prepare(
+		`SELECT c.id, c.name, c.term, d_c.name, u.name, 
+		u.patronymic, u.surname, d_u.name, c.modified_at 
+		FROM courses AS c 
+		JOIN users AS u ON c.teacher_id=u.id 
+		JOIN departments AS d_u ON d_u.id=u.dep_id 
+		JOIN departments AS d_c ON d_c.id=c.dep_id
+		WHERE c.teacher_id=$1`)
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	var courses []CourseMultipleExportDTO
+	var rows *sql.Rows
+	if rows, err = stmt.Query(&teacherId); err != nil {
+		log.Fatal(err)
+	}
+
 	for rows.Next() {
 		var c CourseMultipleExportDTO
-
-		if err = rows.Scan(&c.Id); err != nil {
-			log.Fatal(err)
-		}
-
 		var t time.Time
-		if err := selCourseStmt.QueryRow(&c.Id).Scan(
-			&c.Name, &c.Term, &c.Dep, &c.Teacher.Name,
+		if err := rows.Scan(
+			&c.Id, &c.Name, &c.Term, &c.Dep, &c.Teacher.Name,
 			&c.Teacher.Patronymic, &c.Teacher.Surname,
 			&c.Teacher.Dep, &t); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return courses, e.ErrCoursesNotFound
-			}
 			log.Fatal(err)
 		}
 		c.ModifiedAt = t.Unix()
@@ -182,10 +211,6 @@ func (c *Course) Insert() (int, error) {
 		log.Fatal(err)
 	}
 
-	if err = LinkUserWithCourse(c.TeacherId, c.Id); err != nil {
-		log.Fatal(err)
-	}
-
 	return c.Id, nil
 }
 
@@ -203,8 +228,7 @@ func (c *Course) Update() error {
 	stmt, err := pgsql.DB.Prepare(
 		`UPDATE courses SET name=$2, term=$3, 
 		teacher_id=$4, markdown=$5, dep_id=$6, 
-		modified_at=$7
-		WHERE id=$1`)
+		modified_at=$7 WHERE id=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
@@ -215,49 +239,31 @@ func (c *Course) Update() error {
 		log.Fatal(err)
 	}
 
-	if err = LinkUserWithCourse(c.TeacherId, c.Id); err != nil {
-		log.Fatal(err)
-	}
-
 	return nil
 }
 
-// Errors: -
-func LinkUserWithCourse(userId, courseId int) error {
-	var exists bool
+// User have: 0 - no access, 1 - read access, 2 - write access
+func (c *Course) CheckAccess(claims jwt.MapClaims) int {
+	if c.TeacherId == 0 {
+		err := pgsql.DB.QueryRow(
+			`SELECT teacher_id FROM courses WHERE id=$1`,
+			&c.Id).Scan(&c.TeacherId)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if c.TeacherId == claims["user_id"].(int) {
+		return 2
+	}
+
+	var exists int
 	err := pgsql.DB.QueryRow(
-		`SELECT 1 FROM user_courses WHERE user_id=$1 and course_id=$2`,
-		&userId, &courseId).Scan(&exists)
+		`SELECT 1 FROM group_courses WHERE group_id=$1 and course_id=$2`,
+		claims["group_id"].(int), &c.Id).Scan(&exists)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Fatal(err)
-	} else if err == nil {
-		return nil
 	}
 
-	if _, err = pgsql.DB.Exec(
-		`INSERT INTO user_courses (user_id, course_id) VALUES ($1, $2)`,
-		userId, courseId); err != nil {
-		log.Fatal(err)
-	}
-
-	return nil
-}
-
-// Errors: -
-func CheckUserBelongsToCourse(userId, courseId int) (bool, error) {
-	stmt, err := pgsql.DB.Prepare(
-		`SELECT 1 FROM user_courses WHERE user_id=$1 AND course_id=$2`)
-	if err != nil {
-		log.Fatal(e.ErrCantPrepareDbStmt)
-	}
-
-	var belongs bool
-	if err = stmt.QueryRow(&userId, &courseId).Scan(&belongs); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
-		log.Fatal(err)
-	}
-
-	return true, nil
+	return exists
 }

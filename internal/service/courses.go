@@ -8,49 +8,18 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/golang-jwt/jwt"
 )
 
 func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		CoursesGetHandler(w, r)
-	case http.MethodPost:
-		CoursesCreateHandler(w, r)
-	case http.MethodPut:
-		CoursesUpdateHandler(w, r)
-	default:
-		e.ResponseWithError(w, r, http.StatusMethodNotAllowed,
-			e.ErrMethodNotAllowed)
-	}
-}
-
-// Courses GET logic.
-// Courses can be get by id in url values or by user id in token claims;
-// Expected header:
-// Authorization : Bearer <access token>
-// Response: Error message or course(s) by course id (user id):
-// id : id of course;
-// name : name of course;
-// term : term of course;
-// teacher_id : id of teacher (user) (get by course id only);
-// markdown : markdown text of course (get by course id only);
-// dep_id : id of course department (get by course id only);
-// teacher.name : teacher name (get by user id only);
-// teacher.patronymic : teacher patronymic (get by user id only);
-// teacher.surname : teacher surname (get by user id only);
-// teacher.dep : teacher department (get by user id only);
-// dep : course department (get by user id only);
-// modified_at : course last modified time in UNIX format (get by user id only).
-// Response codes:
-// 200, 400, 401, 404.
-func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
+	token, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
-	claims, err := auth.GetTokenClaims(accessToken)
+	claims, err := auth.GetTokenClaims(token)
 	if err == e.ErrTokenExpired {
 		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
 		return
@@ -59,12 +28,47 @@ func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	switch r.Method {
+	case http.MethodGet:
+		CoursesGetHandler(w, r, token, claims)
+	case http.MethodPost:
+		CoursesCreateHandler(w, r, token, claims)
+	case http.MethodPut:
+		CoursesUpdateHandler(w, r, token, claims)
+	default:
+		e.ResponseWithError(w, r, http.StatusMethodNotAllowed,
+			e.ErrMethodNotAllowed)
+	}
+}
+
+// Courses GET logic.
+// Courses can be get by id in url values or by group_id in token claims;
+// Expected header:
+// Authorization : Bearer <access token>
+// Response: Error message or course(s) by course_id (group_id):
+// id : id of course;
+// name : name of course;
+// term : term of course;
+// teacher_id : id of teacher (user) (get by course_id only);
+// markdown : markdown text of course (get by course_id only);
+// dep_id : id of course department (get by course_id only);
+// teacher.name : teacher name (get by group_id only);
+// teacher.patronymic : teacher patronymic (get by group_id only);
+// teacher.surname : teacher surname (get by group_id only);
+// teacher.dep : teacher department (get by group_id only);
+// dep : course department (get by group_id only);
+// modified_at : course last modified time in UNIX format (get by group_id only).
+// Response codes:
+// 200, 400, 401, 404.
+func CoursesGetHandler(w http.ResponseWriter, r *http.Request,
+	token string, claims jwt.MapClaims) {
+	var err error
 	var jsonBytes []byte
 
 	rawQuery := r.URL.Query()
 	if rawQuery.Has("id") {
-		var courseId int
-		if courseId, err = strconv.Atoi(rawQuery.Get("id")); err != nil {
+		courseId, err := strconv.Atoi(rawQuery.Get("id"))
+		if err != nil {
 			e.ResponseWithError(
 				w, r, http.StatusBadRequest, e.ErrUrlValueNotValid)
 			return
@@ -77,13 +81,29 @@ func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// User dont have read access to this course
+		if course.CheckAccess(claims) == 0 {
+			e.ResponseWithError(
+				w, r, http.StatusForbidden, e.ErrAccessDenied)
+			return
+		}
+
 		jsonBytes, _ = json.Marshal(course)
 
 	} else {
-		courses, err := models.GetAllCoursesByUserId(claims["user_id"].(int))
-		if err != nil {
-			e.ResponseWithError(w, r, http.StatusNotFound, e.ErrCoursesNotFound)
-			return
+		var courses []models.CourseMultipleExportDTO
+		if claims["role_id"] == 1 { // Student
+			courses, err = models.GetAllCoursesByGroupId(claims["group_id"].(int))
+			if err != nil {
+				e.ResponseWithError(w, r, http.StatusNotFound, e.ErrCoursesNotFound)
+				return
+			}
+		} else { // Teacher or admin
+			courses, err = models.GetAllCoursesByTeacherId(claims["user_id"].(int))
+			if err != nil {
+				e.ResponseWithError(w, r, http.StatusNotFound, e.ErrCoursesNotFound)
+				return
+			}
 		}
 
 		jsonBytes, _ = json.Marshal(courses)
@@ -106,22 +126,8 @@ func CoursesGetHandler(w http.ResponseWriter, r *http.Request) {
 // dep_id : id of course department.
 // Response codes:
 // 200, 400, 401, 403.
-func CoursesCreateHandler(w http.ResponseWriter, r *http.Request) {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
-	if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	claims, err := auth.GetTokenClaims(accessToken)
-	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
-		return
-	} else if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
+func CoursesCreateHandler(w http.ResponseWriter, r *http.Request,
+	token string, claims jwt.MapClaims) {
 	if claims["role_id"] != 2 && claims["role_id"] != 3 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
@@ -133,7 +139,7 @@ func CoursesCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var course models.Course
 
-	if err = json.Unmarshal(bytes, &course); err != nil {
+	if err := json.Unmarshal(bytes, &course); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUnableToUnmarshalBody)
 		return
@@ -163,22 +169,8 @@ func CoursesCreateHandler(w http.ResponseWriter, r *http.Request) {
 // dep_id : id of course department.
 // Response codes:
 // 200, 400, 401, 403.
-func CoursesUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
-	if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	claims, err := auth.GetTokenClaims(accessToken)
-	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
-		return
-	} else if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
+func CoursesUpdateHandler(w http.ResponseWriter, r *http.Request,
+	token string, claims jwt.MapClaims) {
 	if claims["role_id"] != 2 && claims["role_id"] != 3 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
@@ -190,13 +182,19 @@ func CoursesUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var course models.Course
 
-	if err = json.Unmarshal(bytes, &course); err != nil {
+	if err := json.Unmarshal(bytes, &course); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUnableToUnmarshalBody)
 		return
 	}
 
-	if err = course.Update(); err != nil {
+	if course.CheckAccess(claims) != 2 {
+		e.ResponseWithError(
+			w, r, http.StatusForbidden, e.ErrAccessDenied)
+		return
+	}
+
+	if err := course.Update(); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, err)
 		return

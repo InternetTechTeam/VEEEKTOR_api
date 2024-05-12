@@ -14,51 +14,58 @@ CREATE TABLE departments (
     env_id INT REFERENCES educational_envs(id) ON DELETE SET NULL
 );
 
+CREATE TABLE groups (
+    id     SERIAL PRIMARY KEY,
+    name   VARCHAR(100) NOT NULL,
+    dep_id INT REFERENCES departments(id) ON DELETE SET NULL
+);
+
 CREATE TABLE users (
     id         SERIAL PRIMARY KEY,
     email      VARCHAR(100) UNIQUE NOT NULL,
     password   VARCHAR(100) NOT NULL,
+    group_id   INT REFERENCES groups(id) ON DELETE SET NULL,
     name       VARCHAR(100) NOT NULL,
     patronymic VARCHAR(100) NOT NULL,
     surname    VARCHAR(100),
-    role_id    INT REFERENCES roles(id),
+    role_id    INT REFERENCES roles(id) ON DELETE SET NULL,
     dep_id     INT REFERENCES departments(id) ON DELETE SET NULL
 );
 
 CREATE TABLE sessions (
     id            SERIAL PRIMARY KEY,
     user_id       INT REFERENCES users(id) ON DELETE CASCADE,
-    refresh_token VARCHAR(300),
+    refresh_token VARCHAR(300) NOT NULL,
     expires_at    TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 CREATE TABLE courses (
-    id             SERIAL PRIMARY KEY,
-    name           VARCHAR(200) NOT NULL,
-    term           INT NOT NULL,
-    teacher_id     INT REFERENCES users(id) ON DELETE SET NULL,
-    markdown       TEXT,
-    dep_id         INT REFERENCES departments(id) ON DELETE SET NULL,
-    modified_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+    id          SERIAL PRIMARY KEY,
+    name        VARCHAR(200) NOT NULL,
+    term        INT NOT NULL,
+    teacher_id  INT REFERENCES users(id) ON DELETE SET NULL,
+    markdown    TEXT,
+    dep_id      INT REFERENCES departments(id) ON DELETE SET NULL,
+    modified_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE TABLE user_courses (
+CREATE TABLE group_courses (
     id        SERIAL PRIMARY KEY,
-    user_id   INT REFERENCES users(id) ON DELETE CASCADE,
+    group_id  INT REFERENCES groups(id) ON DELETE CASCADE,
     course_id INT REFERENCES courses(id) ON DELETE CASCADE
 );
 
 CREATE TABLE nested_infos (
     id        SERIAL PRIMARY KEY,
     course_id INT REFERENCES courses(id) ON DELETE CASCADE,
-    name      VARCHAR(512),
+    name      VARCHAR(512) NOT NULL,
     markdown  TEXT
 );
 
 CREATE TABLE locations (
     id       SERIAL PRIMARY KEY,
-    location VARCHAR(512)
+    location VARCHAR(512) NOT NULL
 );
 
 CREATE TABLE nested_tests (

@@ -17,9 +17,9 @@ type Session struct {
 	ExpiresAt    time.Time `json:"expires_at"`
 }
 
-// User id and role_id must be valid.
+// User id, role_id and group_id must be valid.
 // Errors: -
-func StoreSession(user_id, role_id int) (TokenResponse, error) {
+func StoreSession(user_id, role_id, groupId int) (TokenResponse, error) {
 	stmt, err := pgsql.DB.Prepare(
 		`INSERT INTO sessions (user_id, refresh_token, expires_at)
 		VALUES ($1, $2, $3)`)
@@ -28,7 +28,7 @@ func StoreSession(user_id, role_id int) (TokenResponse, error) {
 	}
 
 	var resp TokenResponse
-	resp.AccessToken, _ = GenerateAccessToken(user_id, role_id)
+	resp.AccessToken, _ = GenerateAccessToken(user_id, role_id, groupId)
 	resp.RefreshToken, _ = GenerateRefreshToken()
 
 	CheckSessionsCount(user_id)
@@ -51,16 +51,16 @@ func UpdateSession(sess Session) (TokenResponse, error) {
 		log.Fatal(err)
 	}
 
-	var roleId int
+	var roleId, groupId int
 	err = pgsql.DB.QueryRow(
-		`SELECT role_id FROM users WHERE id=$1`,
-		&sess.UserId).Scan(&roleId)
+		`SELECT role_id, group_id FROM users WHERE id=$1`,
+		&sess.UserId).Scan(&roleId, &groupId)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var resp TokenResponse
-	resp.AccessToken, _ = GenerateAccessToken(sess.UserId, roleId)
+	resp.AccessToken, _ = GenerateAccessToken(sess.UserId, roleId, groupId)
 	resp.RefreshToken, _ = GenerateRefreshToken()
 
 	if _, err = stmt.Exec(
@@ -113,8 +113,8 @@ func CheckSessionsCount(user_id int) {
 // Errors: ErrSessionNotExist
 func GetSessionByRefreshToken(refreshToken string) (Session, error) {
 	stmt, err := pgsql.DB.Prepare(
-		`SELECT id, user_id, expires_at FROM 
-		sessions WHERE refresh_token=$1`)
+		`SELECT id, user_id, expires_at 
+		FROM sessions WHERE refresh_token=$1`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}

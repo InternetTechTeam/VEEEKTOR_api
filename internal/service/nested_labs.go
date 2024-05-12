@@ -7,18 +7,35 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
+	"github.com/golang-jwt/jwt"
 )
 
 func GetNestedLabsHandler(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetAccessTokenFromHeader(r)
+	if err != nil {
+		e.ResponseWithError(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	claims, err := auth.GetTokenClaims(token)
+	if err == e.ErrTokenExpired {
+		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
+		return
+	} else if err != nil {
+		e.ResponseWithError(w, r, http.StatusBadRequest, err)
+		return
+	}
+
 	switch r.Method {
 	case http.MethodGet:
-		NestedLabsGetHandler(w, r)
+		NestedLabsGetHandler(w, r, token, claims)
 	case http.MethodPost:
-		NestedLabsCreateHandler(w, r)
+		NestedLabsCreateHandler(w, r, token, claims)
 	case http.MethodPut:
-		NestedLabsUpdateHandler(w, r)
+		NestedLabsUpdateHandler(w, r, token, claims)
 	case http.MethodDelete:
-		NestedLabsDeleteHandler(w, r)
+		NestedLabsDeleteHandler(w, r, token, claims)
 	default:
 		e.ResponseWithError(w, r, http.StatusMethodNotAllowed,
 			e.ErrMethodNotAllowed)
@@ -42,22 +59,8 @@ func GetNestedLabsHandler(w http.ResponseWriter, r *http.Request) {
 // attempts : number of attempts (only with get by id).
 // Response codes:
 // 200, 400, 401, 403, 404.
-func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request) {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
-	if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	claims, err := auth.GetTokenClaims(accessToken)
-	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
-		return
-	} else if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
+func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request,
+	token string, claims jwt.MapClaims) {
 	var jsonBytes []byte
 
 	rawQuery := r.URL.Query()
@@ -76,8 +79,7 @@ func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if belongs, _ := models.CheckUserBelongsToCourse(
-			claims["user_id"].(int), lab.CourseId); !belongs {
+		if lab.CheckAccess(claims) == 0 {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
@@ -93,8 +95,10 @@ func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if belongs, _ := models.CheckUserBelongsToCourse(
-			claims["user_id"].(int), courseId); !belongs {
+		var course models.Course
+		course.Id = courseId
+
+		if course.CheckAccess(claims) == 0 {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
@@ -134,22 +138,8 @@ func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request) {
 // attempts : number of attempts.
 // Response codes:
 // 200, 400, 401, 403.
-func NestedLabsCreateHandler(w http.ResponseWriter, r *http.Request) {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
-	if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	claims, err := auth.GetTokenClaims(accessToken)
-	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
-		return
-	} else if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
+func NestedLabsCreateHandler(w http.ResponseWriter, r *http.Request,
+	token string, claims jwt.MapClaims) {
 	if claims["role_id"] != 2 && claims["role_id"] != 3 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
@@ -161,20 +151,19 @@ func NestedLabsCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var lab models.NestedLab
 
-	if err = json.Unmarshal(bytes, &lab); err != nil {
+	if err := json.Unmarshal(bytes, &lab); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUnableToUnmarshalBody)
 		return
 	}
 
-	if belongs, _ := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), lab.CourseId); !belongs {
+	if lab.CheckAccess(claims) != 2 {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
 	}
 
-	if err = lab.Insert(); err != nil {
+	if err := lab.Insert(); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, err)
 		return
@@ -200,22 +189,8 @@ func NestedLabsCreateHandler(w http.ResponseWriter, r *http.Request) {
 // attempts : number of attempts.
 // Response codes:
 // 200, 400, 401, 403.
-func NestedLabsUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
-	if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	claims, err := auth.GetTokenClaims(accessToken)
-	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
-		return
-	} else if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
+func NestedLabsUpdateHandler(w http.ResponseWriter, r *http.Request,
+	token string, claims jwt.MapClaims) {
 	if claims["role_id"] != 2 && claims["role_id"] != 3 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
@@ -226,21 +201,19 @@ func NestedLabsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	r.Body.Read(bytes)
 
 	var lab models.NestedLab
-
-	if err = json.Unmarshal(bytes, &lab); err != nil {
+	if err := json.Unmarshal(bytes, &lab); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUnableToUnmarshalBody)
 		return
 	}
 
-	if belongs, _ := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), lab.CourseId); !belongs {
+	if lab.CheckAccess(claims) != 2 {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
 	}
 
-	if err = lab.Update(); err != nil {
+	if err := lab.Update(); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, err)
 		return
@@ -257,22 +230,8 @@ func NestedLabsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 // Response: Error message or StatusOk:
 // Response codes:
 // 200, 400, 401, 403, 404, 500.
-func NestedLabsDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
-	if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	claims, err := auth.GetTokenClaims(accessToken)
-	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
-		return
-	} else if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
+func NestedLabsDeleteHandler(w http.ResponseWriter, r *http.Request,
+	token string, claims jwt.MapClaims) {
 	if claims["role_id"] != 2 && claims["role_id"] != 3 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
@@ -299,10 +258,9 @@ func NestedLabsDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if belongs, _ := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), lab.CourseId); !belongs {
+	if lab.CheckAccess(claims) != 2 {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
 	}
 

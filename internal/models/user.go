@@ -14,6 +14,7 @@ type User struct {
 	Id         int    `json:"id"`
 	Email      string `json:"email,omitempty"`
 	Password   string `json:"password,omitempty"`
+	GroupId    int    `json:"group_id"`
 	Name       string `json:"name"`
 	Patronymic string `json:"patronymic"`
 	Surname    string `json:"surname"`
@@ -31,7 +32,7 @@ const (
 // Errors: ErrUserNotFound
 func GetUserById(userId int) (User, error) {
 	stmt, err := pgsql.DB.Prepare(`
-	SELECT email, password, name, 
+	SELECT email, password, group_id, name, 
 	patronymic, surname, role_id, dep_id
 	FROM users WHERE id=$1`)
 	if err != nil {
@@ -42,8 +43,8 @@ func GetUserById(userId int) (User, error) {
 	usr.Id = userId
 
 	if err := stmt.QueryRow(userId).Scan(
-		&usr.Email, &usr.Password, &usr.Name,
-		&usr.Patronymic, &usr.Surname,
+		&usr.Email, &usr.Password, &usr.GroupId,
+		&usr.Name, &usr.Patronymic, &usr.Surname,
 		&usr.RoleId, &usr.DepId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return usr, e.ErrUserNotFound
@@ -57,7 +58,7 @@ func GetUserById(userId int) (User, error) {
 // Errors: ErrUserNotFound
 func GetUserByEmailAndPassword(inp SignInInput) (User, error) {
 	stmt, err := pgsql.DB.Prepare(
-		`SELECT id, email, password, name, 
+		`SELECT id, email, password, group_id, name, 
 		patronymic, surname, role_id, dep_id 
 		FROM users WHERE email=$1 and password=$2`)
 	if err != nil {
@@ -67,8 +68,8 @@ func GetUserByEmailAndPassword(inp SignInInput) (User, error) {
 	var usr User
 	if err := stmt.QueryRow(&inp.Email, &inp.Password).Scan(
 		&usr.Id, &usr.Email, &usr.Password,
-		&usr.Name, &usr.Patronymic, &usr.Surname,
-		&usr.RoleId, &usr.DepId); err != nil {
+		&usr.GroupId, &usr.Name, &usr.Patronymic,
+		&usr.Surname, &usr.RoleId, &usr.DepId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return usr, e.ErrUserNotFound
 		}
@@ -83,7 +84,8 @@ func GetUserByEmailAndPassword(inp SignInInput) (User, error) {
 func (usr *User) Validate() error {
 	if usr.RoleId == 0 || usr.DepId == 0 ||
 		usr.Password == "" || usr.Email == "" ||
-		usr.Name == "" || usr.Surname == "" {
+		usr.GroupId == 0 || usr.Name == "" ||
+		usr.Surname == "" {
 		return e.ErrMissingFields
 	}
 
@@ -123,6 +125,16 @@ func (usr *User) Validate() error {
 	}
 
 	err = pgsql.DB.QueryRow(
+		`SELECT 1 FROM groups WHERE id=$1`,
+		&usr.GroupId).Scan(&exists)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return e.ErrGroupNotExist
+		}
+		log.Fatal(err)
+	}
+
+	err = pgsql.DB.QueryRow(
 		`SELECT 1 FROM departments WHERE id=$1`,
 		&usr.DepId).Scan(&exists)
 	if err != nil {
@@ -138,7 +150,7 @@ func (usr *User) Validate() error {
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Fatal(err)
 	} else if err == nil {
-		return e.ErrUserExists
+		return e.ErrUserExist
 	}
 
 	return nil
@@ -153,15 +165,15 @@ func (usr *User) Insert() error {
 
 	stmt, err := pgsql.DB.Prepare(
 		`INSERT INTO users (
-		email, password, name, 
+		email, password, group_id, name, 
 		patronymic, surname, role_id, dep_id) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`)
 	if err != nil {
 		log.Fatal(e.ErrCantPrepareDbStmt)
 	}
 	if _, err = stmt.Exec(
-		&usr.Email, &usr.Password, &usr.Name,
-		&usr.Patronymic, &usr.Surname,
+		&usr.Email, &usr.Password, &usr.GroupId,
+		&usr.Name, &usr.Patronymic, &usr.Surname,
 		&usr.RoleId, &usr.DepId); err != nil {
 		log.Fatal(err)
 	}

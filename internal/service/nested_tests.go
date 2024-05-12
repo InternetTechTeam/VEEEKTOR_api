@@ -7,50 +7,18 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
+	"github.com/golang-jwt/jwt"
 )
 
 func GetNestedTestsHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		NestedTestsGetHandler(w, r)
-	case http.MethodPost:
-		NestedTestsCreateHandler(w, r)
-	case http.MethodPut:
-		NestedTestsUpdateHandler(w, r)
-	case http.MethodDelete:
-		NestedTestsDeleteHandler(w, r)
-	default:
-		e.ResponseWithError(w, r, http.StatusMethodNotAllowed,
-			e.ErrMethodNotAllowed)
-	}
-}
-
-// Nested tests GET logic.
-// Lab pages can only be accessible for users that belongs to course.
-// Url values should contain ?id=<test_id> or ?id=<course_id>.
-// Expected header:
-// Authorization : Bearer <access token>
-// Response: Error message or test(s) by test id (course id):
-// id : test id;
-// course_id : course id;
-// opens : date, when test opens in UTC;
-// closes : date, when test closes in UTC;
-// tasks_count : count of test tasks (only on get by id);
-// topic : test topic;
-// location_id : id of location (only on get by id);
-// attempts : number of attempts (only on get by id);
-// password : test password (optional) (only on get by id);
-// time_limit : time limit duration (only on get by id).
-// Response codes:
-// 200, 400, 401, 403, 404.
-func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request) {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
+	token, err := auth.GetAccessTokenFromHeader(r)
 	if err != nil {
 		e.ResponseWithError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
-	claims, err := auth.GetTokenClaims(accessToken)
+	claims, err := auth.GetTokenClaims(token)
 	if err == e.ErrTokenExpired {
 		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
 		return
@@ -59,6 +27,41 @@ func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	switch r.Method {
+	case http.MethodGet:
+		NestedTestsGetHandler(w, r, token, claims)
+	case http.MethodPost:
+		NestedTestsCreateHandler(w, r, token, claims)
+	case http.MethodPut:
+		NestedTestsUpdateHandler(w, r, token, claims)
+	case http.MethodDelete:
+		NestedTestsDeleteHandler(w, r, token, claims)
+	default:
+		e.ResponseWithError(w, r, http.StatusMethodNotAllowed,
+			e.ErrMethodNotAllowed)
+	}
+}
+
+// Nested tests GET logic.
+// Test pages can only be accessible for users that belongs to course.
+// Url values should contain ?id=<test_id> or ?id=<course_id>.
+// Expected header:
+// Authorization : Bearer <access token>
+// Response: Error message or test(s) by test id (course id):
+// id : test id;
+// course_id : course id;
+// opens : date, when test opens in UTC;
+// closes : date, when test closes in UTC;
+// tasks_count : count of test tasks (only with get by id);
+// topic : test topic;
+// location_id : id of location (only with get by id);
+// attempts : number of attempts (only with get by id);
+// password : test password (optional) (only with get by id);
+// time_limit : time limit duration (only with get by id).
+// Response codes:
+// 200, 400, 401, 403, 404.
+func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request,
+	token string, claims jwt.MapClaims) {
 	var jsonBytes []byte
 
 	rawQuery := r.URL.Query()
@@ -77,8 +80,7 @@ func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if belongs, _ := models.CheckUserBelongsToCourse(
-			claims["user_id"].(int), test.CourseId); !belongs {
+		if test.CheckAccess(claims) == 0 {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
@@ -94,8 +96,10 @@ func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if belongs, _ := models.CheckUserBelongsToCourse(
-			claims["user_id"].(int), courseId); !belongs {
+		var course models.Course
+		course.Id = courseId
+
+		if course.CheckAccess(claims) == 0 {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
@@ -119,7 +123,7 @@ func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-// Nested test POST logic.
+// Nested tests POST logic.
 // Expected header:
 // Authorization : Bearer <access token>
 // This method allowed only to teachers, who belongs to course or admins.
@@ -136,22 +140,8 @@ func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request) {
 // time_limit : time limit duration (00:15:00).
 // Response codes:
 // 200, 400, 401, 403.
-func NestedTestsCreateHandler(w http.ResponseWriter, r *http.Request) {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
-	if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	claims, err := auth.GetTokenClaims(accessToken)
-	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
-		return
-	} else if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
+func NestedTestsCreateHandler(w http.ResponseWriter, r *http.Request,
+	token string, claims jwt.MapClaims) {
 	if claims["role_id"] != 2 && claims["role_id"] != 3 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
@@ -163,20 +153,19 @@ func NestedTestsCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var test models.NestedTest
 
-	if err = json.Unmarshal(bytes, &test); err != nil {
+	if err := json.Unmarshal(bytes, &test); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUnableToUnmarshalBody)
 		return
 	}
 
-	if belongs, _ := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), test.CourseId); !belongs {
+	if test.CheckAccess(claims) != 2 {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
 	}
 
-	if err = test.Insert(); err != nil {
+	if err := test.Insert(); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, err)
 		return
@@ -203,22 +192,8 @@ func NestedTestsCreateHandler(w http.ResponseWriter, r *http.Request) {
 // time_limit : time limit duration (00:15:00).
 // Response codes:
 // 200, 400, 401, 403.
-func NestedTestsUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
-	if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	claims, err := auth.GetTokenClaims(accessToken)
-	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
-		return
-	} else if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
+func NestedTestsUpdateHandler(w http.ResponseWriter, r *http.Request,
+	token string, claims jwt.MapClaims) {
 	if claims["role_id"] != 2 && claims["role_id"] != 3 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
@@ -230,20 +205,19 @@ func NestedTestsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var test models.NestedTest
 
-	if err = json.Unmarshal(bytes, &test); err != nil {
+	if err := json.Unmarshal(bytes, &test); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, e.ErrUnableToUnmarshalBody)
 		return
 	}
 
-	if belongs, _ := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), test.CourseId); !belongs {
+	if test.CheckAccess(claims) != 2 {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
 	}
 
-	if err = test.Update(); err != nil {
+	if err := test.Update(); err != nil {
 		e.ResponseWithError(
 			w, r, http.StatusBadRequest, err)
 		return
@@ -254,28 +228,14 @@ func NestedTestsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 // Nested test page DELETE logic.
 // URL values should contain ?id=<test_id>
+// This method allowed only to admins and teachers, who belongs to course.
 // Expected header:
 // Authorization : Bearer <access token>
-// This method allowed only to admins and teachers, who belongs to course.
 // Response: Error message or StatusOk:
 // Response codes:
 // 200, 400, 401, 403, 404.
-func NestedTestsDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	accessToken, err := auth.GetAccessTokenFromHeader(r)
-	if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	claims, err := auth.GetTokenClaims(accessToken)
-	if err == e.ErrTokenExpired {
-		e.ResponseWithError(w, r, http.StatusUnauthorized, e.ErrTokenExpired)
-		return
-	} else if err != nil {
-		e.ResponseWithError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
+func NestedTestsDeleteHandler(w http.ResponseWriter, r *http.Request,
+	token string, claims jwt.MapClaims) {
 	if claims["role_id"] != 2 && claims["role_id"] != 3 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
@@ -302,10 +262,9 @@ func NestedTestsDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if belongs, _ := models.CheckUserBelongsToCourse(
-		claims["user_id"].(int), test.CourseId); !belongs {
+	if test.CheckAccess(claims) != 2 {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
 	}
 
