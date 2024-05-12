@@ -11,20 +11,26 @@ VALUES
 ('admin', 1), ('О7', 2), ('О6', 2), 
 ('О4', 2), ('И9', 2), ('Р1', 2);
 
-INSERT INTO users (email, password, name, patronymic, surname, role_id, dep_id) 
+INSERT INTO groups (name, dep_id)
 VALUES 
-('spamer@mail.ru', '88888888', 'ivan', 'ivanovich', 'ivanov', 3, 1),
-('teacher@mail.ru', '88888888', 'koly', 'pidor', 'fokin', 2, 2),
-('studentO7@mail.ru', '88888888', 'anna', 'lokiv', 'bobsova', 1, 2),
-('studentO6@mail.ru', '88888888', 'alex', 'mashinov', 'bobrov', 1, 3),
-('studentO4@mail.ru', '88888888', 'sasha', 'teapet', 'ruric', 1, 4),
-('studentI9@mail.ru', '88888888', 'vitya', 'nextov', 'kuropyat', 1, 5),
-('studentP1@mail.ru', '88888888', 'maria', 'mariovna', 'petrova', 1, 6),
-('studentALL@mail.ru', '88888888', 'genius', 'vse', 'kursi', 1, 2),
-('teacherO6@mail.ru', '88888888', 'teacher', 'teacher', 'teacher', 2, 3),
-('teacherO4@mail.ru', '88888888', 'teacher', 'teacher', 'teacher', 2, 4),
-('teacherI9@mail.ru', '88888888', 'teacher', 'teacher', 'teacher', 2, 5),
-('teacherP1@mail.ru', '88888888', 'teacher', 'teacher', 'teacher', 2, 6);
+('teacher', 1), ('О722Б', 2), ('О654С', 3), 
+('О455', 4), ('И999С', 5), ('Р877', 6);
+
+INSERT INTO users (email, password, group_id, 
+name, patronymic, surname, role_id, dep_id) 
+VALUES 
+('spamer@mail.ru', '88888888', 1, 'ivan', 'ivanovich', 'ivanov', 3, 1),
+('teacher@mail.ru', '88888888', 1, 'koly', 'pidor', 'fokin', 2, 2),
+('studentO7@mail.ru', '88888888', 2, 'anna', 'lokiv', 'bobsova', 1, 2),
+('studentO6@mail.ru', '88888888', 3, 'alex', 'mashinov', 'bobrov', 1, 3),
+('studentO4@mail.ru', '88888888', 4, 'sasha', 'teapet', 'ruric', 1, 4),
+('studentI9@mail.ru', '88888888', 5, 'vitya', 'nextov', 'kuropyat', 1, 5),
+('studentP1@mail.ru', '88888888', 6, 'maria', 'mariovna', 'petrova', 1, 6),
+('studentALL@mail.ru', '88888888', 2, 'genius', 'vse', 'kursi', 1, 2),
+('teacherO6@mail.ru', '88888888', 1, 'teacher', 'teacher', 'teacher', 2, 3),
+('teacherO4@mail.ru', '88888888', 1, 'teacher', 'teacher', 'teacher', 2, 4),
+('teacherI9@mail.ru', '88888888', 1, 'teacher', 'teacher', 'teacher', 2, 5),
+('teacherP1@mail.ru', '88888888', 1, 'teacher', 'teacher', 'teacher', 2, 6);
 
 INSERT INTO courses (name, term, teacher_id, markdown, dep_id) 
 VALUES 
@@ -49,14 +55,10 @@ VALUES
 
 ('Крутой предмет П1', 2, 5, '## Предмет П1 \[Технологическая карта](http://134.209.230.107:8080/api/courses/infos?id=10) \[Тест 1](http://134.209.230.107:8080/api/courses/tests?id=10) \[Лабораторная работа 1](http://134.209.230.107:8080/api/courses/labs?id=10)', 6);
 
-INSERT INTO user_courses (user_id, course_id) 
-VALUES 
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), 
-(1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
-(3, 1), (3, 2), (3, 3), (4, 7), (5, 8), 
-(6, 9), (7, 10), (8, 1), (8, 2), (8, 3), 
-(8, 4), (8, 5), (8, 6), (8, 7), (8, 8), 
-(8, 9), (8, 10);
+INSERT INTO group_courses (group_id, course_id)
+VALUES
+(1, 1), (1, 2), (2, 3), (2, 4), (3, 5), 
+(3, 6), (4, 7), (4, 8), (5, 9), (5, 10);
 
 INSERT INTO locations (location) 
 VALUES 

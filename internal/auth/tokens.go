@@ -44,11 +44,12 @@ func GenerateRefreshToken() (string, error) {
 }
 
 // Errors: -
-func GenerateAccessToken(user_id int, role_id int) (string, error) {
+func GenerateAccessToken(userId, roleId, groupId int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.MapClaims{
-		"exp":     time.Now().Add(AccessTokenLifeTime).Unix(),
-		"user_id": user_id,
-		"role_id": role_id,
+		"exp":      time.Now().Add(AccessTokenLifeTime).Unix(),
+		"user_id":  userId,
+		"role_id":  roleId,
+		"group_id": groupId,
 	})
 
 	tokenString, err := token.SignedString(AccessKey)
@@ -135,6 +136,7 @@ func GetTokenClaims(accessToken string) (jwt.MapClaims, error) {
 	// Convert json number to golang int
 	claims["user_id"] = int(claims["user_id"].(float64))
 	claims["role_id"] = int(claims["role_id"].(float64))
+	claims["group_id"] = int(claims["group_id"].(float64))
 
 	return claims, nil
 }

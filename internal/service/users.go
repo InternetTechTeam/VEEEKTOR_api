@@ -107,7 +107,7 @@ func UsersSignInHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens, _ := auth.StoreSession(user.Id, user.RoleId)
+	tokens, _ := auth.StoreSession(user.Id, user.RoleId, user.GroupId)
 
 	// Write jwt and refresh token pair
 	jsonBytes, _ := json.Marshal(tokens)

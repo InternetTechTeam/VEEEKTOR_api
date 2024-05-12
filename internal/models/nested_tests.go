@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type NestedTest struct {
@@ -217,4 +219,30 @@ func DeleteNestedTestById(testId int) error {
 	}
 
 	return nil
+}
+
+// User have: 0 - no access, 1 - read access, 2 - write access
+func (t *NestedTest) CheckAccess(claims jwt.MapClaims) int {
+	var teacherId int
+	err := pgsql.DB.QueryRow(
+		`SELECT teacher_id FROM 
+		courses WHERE id=$1`, &t.CourseId).Scan(&teacherId)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if claims["user_id"].(int) == teacherId {
+		return 2
+	}
+
+	var exists int
+	err = pgsql.DB.QueryRow(
+		`SELECT 1 FROM group_courses 
+		WHERE group_id=$1 and course_id=$2`,
+		claims["group_id"].(int), &t.CourseId).Scan(&exists)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Fatal(err)
+	}
+
+	return exists
 }
