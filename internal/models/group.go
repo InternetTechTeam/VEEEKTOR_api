@@ -115,3 +115,98 @@ func DeleteGroupById(groupId int) error {
 
 	return nil
 }
+
+type GroupCourse struct {
+	Id       int `json:"id"`
+	GroupId  int `json:"group_id"`
+	CourseId int `json:"course_id"`
+}
+
+// Errors: ErrMissingFields, ErrGroupNotExist, ErrCourseNotFound
+func (gc *GroupCourse) Validate() error {
+	if gc.GroupId == 0 || gc.CourseId == 0 {
+		return e.ErrMissingFields
+	}
+
+	var exists bool
+	err := pgsql.DB.QueryRow(
+		`SELECT 1 FROM groups WHERE id=$1`,
+		&gc.GroupId).Scan(&exists)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Fatal(err)
+	}
+	if !exists {
+		return e.ErrGroupNotExist
+	}
+
+	err = pgsql.DB.QueryRow(
+		`SELECT 1 FROM courses WHERE id=$1`,
+		&gc.CourseId).Scan(&exists)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Fatal(err)
+	}
+	if !exists {
+		return e.ErrCourseNotFound
+	}
+
+	return nil
+}
+
+// Errors: ErrGroupLinkedToCourse, ErrMissingFields,
+// ErrGroupNotExist, ErrCourseNotFound
+func (gc *GroupCourse) Insert() error {
+	var exists bool
+	err := pgsql.DB.QueryRow(
+		`SELECT 1 from group_courses WHERE 
+		group_id=$1 AND course_id=$2`,
+		&gc.GroupId, &gc.CourseId).Scan(&exists)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Fatal(err)
+	}
+	if exists {
+		return e.ErrGroupLinkedToCourse
+	}
+
+	if err = gc.Validate(); err != nil {
+		return err
+	}
+
+	stmt, err := pgsql.DB.Prepare(
+		`INSERT INTO group_courses(group_id, course_id)
+		VALUES ($1, $2)`)
+	if err != nil {
+		log.Fatal(e.ErrCantPrepareDbStmt)
+	}
+
+	if _, err := stmt.Exec(&gc.GroupId, &gc.CourseId); err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+}
+
+func (gc *GroupCourse) Delete() error {
+	var id int
+	err := pgsql.DB.QueryRow(
+		`SELECT id from group_courses WHERE 
+		group_id=$1 AND course_id=$2`,
+		&gc.GroupId, &gc.CourseId).Scan(&id)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Fatal(err)
+	}
+	if id == 0 {
+		return e.ErrGroupNotLinkedToCourse
+	}
+
+	stmt, err := pgsql.DB.Prepare(
+		`DELETE FROM group_courses WHERE id=$1`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if _, err = stmt.Exec(&id); err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
+}

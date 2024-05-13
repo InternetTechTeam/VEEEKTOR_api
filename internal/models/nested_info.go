@@ -164,17 +164,20 @@ func DeleteNestedInfoById(infoId int) error {
 }
 
 // User have: 0 - no access, 1 - read access, 2 - write access
-func (i *NestedInfo) CheckAccess(claims jwt.MapClaims) int {
+// Errors: ErrCourseNotFound
+func (i *NestedInfo) CheckAccess(claims jwt.MapClaims) (int, error) {
 	var teacherId int
 	err := pgsql.DB.QueryRow(
 		`SELECT teacher_id FROM 
 		courses WHERE id=$1`, &i.CourseId).Scan(&teacherId)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, e.ErrCourseNotFound
+	} else if err != nil {
 		log.Fatal(err)
 	}
 
 	if claims["user_id"].(int) == teacherId {
-		return 2
+		return 2, nil
 	}
 
 	var exists int
@@ -186,5 +189,5 @@ func (i *NestedInfo) CheckAccess(claims jwt.MapClaims) int {
 		log.Fatal(err)
 	}
 
-	return exists
+	return exists, nil
 }

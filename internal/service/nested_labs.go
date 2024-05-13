@@ -79,9 +79,10 @@ func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request,
 			return
 		}
 
-		if lab.CheckAccess(claims) == 0 {
+		access, _ := lab.CheckAccess(claims)
+		if access == 0 {
 			e.ResponseWithError(
-				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
+				w, r, http.StatusForbidden, e.ErrAccessDenied)
 			return
 		}
 
@@ -98,7 +99,13 @@ func NestedLabsGetHandler(w http.ResponseWriter, r *http.Request,
 		var course models.Course
 		course.Id = courseId
 
-		if course.CheckAccess(claims) == 0 {
+		access, err := course.CheckAccess(claims)
+		if err != nil {
+			e.ResponseWithError(
+				w, r, http.StatusBadRequest, e.ErrCourseNotFound)
+			return
+		}
+		if access == 0 {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
@@ -157,9 +164,15 @@ func NestedLabsCreateHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if lab.CheckAccess(claims) != 2 {
+	access, err := lab.CheckAccess(claims)
+	if err != nil {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrAccessDenied)
+			w, r, http.StatusBadRequest, e.ErrCourseNotFound)
+		return
+	}
+	if access != 2 {
+		e.ResponseWithError(
+			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
 	}
 
@@ -207,9 +220,15 @@ func NestedLabsUpdateHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if lab.CheckAccess(claims) != 2 {
+	access, err := lab.CheckAccess(claims)
+	if err != nil {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrAccessDenied)
+			w, r, http.StatusBadRequest, e.ErrCourseNotFound)
+		return
+	}
+	if access != 2 {
+		e.ResponseWithError(
+			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
 	}
 
@@ -258,9 +277,10 @@ func NestedLabsDeleteHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if lab.CheckAccess(claims) != 2 {
+	access, _ := lab.CheckAccess(claims)
+	if access != 2 {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrAccessDenied)
+			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
 	}
 
