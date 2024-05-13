@@ -68,6 +68,10 @@ var (
 		"group not found")
 	ErrGroupsNotFound = errors.New(
 		"groups not found")
+	ErrGroupLinkedToCourse = errors.New(
+		"group already linked to course")
+	ErrGroupNotLinkedToCourse = errors.New(
+		"group not linked to course")
 	// Courses
 	ErrCourseIdNull = errors.New(
 		"course id must be set")

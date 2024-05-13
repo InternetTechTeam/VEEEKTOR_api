@@ -45,13 +45,16 @@ func getMultiplexer() *http.ServeMux {
 	mux.HandleFunc(apiPrefix+"/users/signup", service.UsersSignUpHandler)
 
 	// Educational envs
-	mux.HandleFunc(apiPrefix+"/educational_envs", service.GetEducatinalEnvironmentsHandler)
+	mux.HandleFunc(apiPrefix+"/educational_envs",
+		service.GetEducatinalEnvironmentsHandler)
 
 	// Departments
 	mux.HandleFunc(apiPrefix+"/departments", service.GetDepartmentsHandler)
 
 	// Groups
 	mux.HandleFunc(apiPrefix+"/groups", service.GetGroupsHandler)
+	mux.HandleFunc(apiPrefix+"/groups/link", service.LinkGroupWithCourse)
+	mux.HandleFunc(apiPrefix+"/groups/unlink", service.UnlinkGroupFromCourse)
 
 	// Courses
 	mux.HandleFunc(apiPrefix+"/courses", service.GetCouresesHandler)

@@ -80,7 +80,8 @@ func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request,
 			return
 		}
 
-		if test.CheckAccess(claims) == 0 {
+		access, _ := test.CheckAccess(claims)
+		if access == 0 {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
@@ -99,7 +100,13 @@ func NestedTestsGetHandler(w http.ResponseWriter, r *http.Request,
 		var course models.Course
 		course.Id = courseId
 
-		if course.CheckAccess(claims) == 0 {
+		access, err := course.CheckAccess(claims)
+		if err != nil {
+			e.ResponseWithError(
+				w, r, http.StatusBadRequest, e.ErrCourseNotFound)
+			return
+		}
+		if access == 0 {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
@@ -159,9 +166,15 @@ func NestedTestsCreateHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if test.CheckAccess(claims) != 2 {
+	access, err := test.CheckAccess(claims)
+	if err != nil {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrAccessDenied)
+			w, r, http.StatusBadRequest, e.ErrCourseNotFound)
+		return
+	}
+	if access != 2 {
+		e.ResponseWithError(
+			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
 	}
 
@@ -211,9 +224,15 @@ func NestedTestsUpdateHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if test.CheckAccess(claims) != 2 {
+	access, err := test.CheckAccess(claims)
+	if err != nil {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrAccessDenied)
+			w, r, http.StatusBadRequest, e.ErrCourseNotFound)
+		return
+	}
+	if access != 2 {
+		e.ResponseWithError(
+			w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 		return
 	}
 
@@ -262,9 +281,10 @@ func NestedTestsDeleteHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if test.CheckAccess(claims) != 2 {
+	access, _ := test.CheckAccess(claims)
+	if access != 2 {
 		e.ResponseWithError(
-			w, r, http.StatusForbidden, e.ErrAccessDenied)
+			w, r, http.StatusForbidden, e.ErrCourseNotFound)
 		return
 	}
 

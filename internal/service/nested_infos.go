@@ -73,7 +73,8 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request,
 			return
 		}
 
-		if info.CheckAccess(claims) == 0 {
+		access, _ := info.CheckAccess(claims)
+		if access == 0 {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrAccessDenied)
 			return
@@ -91,7 +92,13 @@ func NestedInfosGetHandler(w http.ResponseWriter, r *http.Request,
 
 		var course models.Course
 		course.Id = courseId
-		if course.CheckAccess(claims) == 0 {
+		access, err := course.CheckAccess(claims)
+		if err != nil {
+			e.ResponseWithError(
+				w, r, http.StatusBadRequest, e.ErrCourseNotFound)
+			return
+		}
+		if access == 0 {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrUserNotBelongToCourse)
 			return
@@ -144,7 +151,13 @@ func NestedInfosCreateHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if info.CheckAccess(claims) != 2 {
+	access, err := info.CheckAccess(claims)
+	if err != nil {
+		e.ResponseWithError(
+			w, r, http.StatusBadRequest, e.ErrCourseNotFound)
+		return
+	}
+	if access != 2 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
@@ -191,7 +204,13 @@ func NestedInfosUpdateHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	// NOT THE BEST CHECK
-	if info.CheckAccess(claims) != 2 {
+	access, err := info.CheckAccess(claims)
+	if err != nil {
+		e.ResponseWithError(
+			w, r, http.StatusBadRequest, e.ErrCourseNotFound)
+		return
+	}
+	if access != 2 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
@@ -242,7 +261,8 @@ func NestedInfosDeleteHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if info.CheckAccess(claims) != 2 {
+	access, _ := info.CheckAccess(claims)
+	if access != 2 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return

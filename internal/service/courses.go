@@ -59,7 +59,7 @@ func GetCouresesHandler(w http.ResponseWriter, r *http.Request) {
 // dep : course department (get by group_id only);
 // modified_at : course last modified time in UNIX format (get by group_id only).
 // Response codes:
-// 200, 400, 401, 404.
+// 200, 400, 401, 403, 404.
 func CoursesGetHandler(w http.ResponseWriter, r *http.Request,
 	token string, claims jwt.MapClaims) {
 	var err error
@@ -81,8 +81,9 @@ func CoursesGetHandler(w http.ResponseWriter, r *http.Request,
 			return
 		}
 
-		// User dont have read access to this course
-		if course.CheckAccess(claims) == 0 {
+		// Error checked in GetCourseById
+		access, _ := course.CheckAccess(claims)
+		if access == 0 {
 			e.ResponseWithError(
 				w, r, http.StatusForbidden, e.ErrAccessDenied)
 			return
@@ -188,7 +189,13 @@ func CoursesUpdateHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if course.CheckAccess(claims) != 2 {
+	access, err := course.CheckAccess(claims)
+	if err != nil {
+		e.ResponseWithError(
+			w, r, http.StatusBadRequest, e.ErrCourseNotFound)
+		return
+	}
+	if access != 2 {
 		e.ResponseWithError(
 			w, r, http.StatusForbidden, e.ErrAccessDenied)
 		return
